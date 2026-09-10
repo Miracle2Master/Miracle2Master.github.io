@@ -4,7 +4,7 @@ export default defineConfig({
   title: 'Miracle2Master 笔记',
   description: '我的学习笔记站',
   lang: 'zh-CN',
-  base: '/Miracle2Master.githup.io/',
+  base: './',
   srcDir: 'docs',
   ignoreDeadLinks: true,
   themeConfig: {

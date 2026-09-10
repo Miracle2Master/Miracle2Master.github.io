@@ -19,40 +19,65 @@ function walk(dir: string): string[] {
 }
 
 function firstTitle(file: string): string {
-  const content = readFileSync(file, 'utf-8')
-  const m = content.match(/^#\s+(.+)$/m)
-  return m ? m[1].trim() : basename(file, '.md')
+  return basename(file, '.md')
 }
 
-function sortKey(name: string): number {
-  const m = name.match(/^(\d+)/)
+function orderOf(file: string): number {
+  const content = readFileSync(file, 'utf-8')
+  const fm = content.match(/^---\s*\n([\s\S]*?)\n---/)
+  if (!fm) return Number.MAX_SAFE_INTEGER
+  const m = fm[1].match(/order\s*:\s*(\d+)/)
   return m ? parseInt(m[1], 10) : Number.MAX_SAFE_INTEGER
 }
 
-type SidebarItem = { text: string; link: string }
-type SidebarGroup = { text: string; items: SidebarItem[] }
+type SidebarItem = { text: string; link?: string; items?: SidebarItem[] }
 
-function buildSidebar(): SidebarGroup[] {
-  const groups = new Map<string, SidebarItem[]>()
+// 导航页不参与笔记侧边栏
+const EXCLUDED = new Set(['index.md', 'notes.md'])
+
+function buildSidebar(): Record<string, SidebarItem[]> {
+  const folders = new Map<
+    string,
+    { files: { item: SidebarItem; order: number }[]; subs: Map<string, { item: SidebarItem; order: number }[]> }
+  >()
   for (const file of walk(docsDir)) {
     const rel = relative(docsDir, file).replace(/\\/g, '/')
-    if (rel === 'index.md') continue
+    if (EXCLUDED.has(rel)) continue
     const seg = rel.split('/')
-    const group = seg.length > 1 ? seg[0] : '其他'
+    const top = seg[0]
     const link = '/' + rel.replace(/\.md$/, '')
-    const item: SidebarItem = { text: firstTitle(file), link }
-    if (!groups.has(group)) groups.set(group, [])
-    groups.get(group)!.push(item)
+    const entry = { item: { text: firstTitle(file), link }, order: orderOf(file) }
+    if (!folders.has(top)) folders.set(top, { files: [], subs: new Map() })
+    const data = folders.get(top)!
+    if (seg.length === 2) {
+      data.files.push(entry)
+    } else {
+      const sub = seg[1]
+      if (!data.subs.has(sub)) data.subs.set(sub, [])
+      data.subs.get(sub)!.push(entry)
+    }
   }
-  const result: SidebarGroup[] = []
-  for (const [group, items] of groups) {
-    items.sort((a, b) => a.text.localeCompare(b.text, 'zh-CN'))
-    result.push({ text: group, items })
+
+  const byOrder = (
+    a: { order: number; item: SidebarItem },
+    b: { order: number; item: SidebarItem }
+  ) => a.order - b.order || a.item.text!.localeCompare(b.item.text!, 'zh-CN')
+
+  const result: Record<string, SidebarItem[]> = {}
+  for (const [top, data] of folders) {
+    data.files.sort(byOrder)
+    const items: SidebarItem[] = data.files.map((e) => e.item)
+    const subNames = [...data.subs.keys()].sort((a, b) => {
+      const oa = Math.min(...data.subs.get(a)!.map((e) => e.order))
+      const ob = Math.min(...data.subs.get(b)!.map((e) => e.order))
+      return oa - ob || a.localeCompare(b, 'zh-CN')
+    })
+    for (const sub of subNames) {
+      const subItems = data.subs.get(sub)!.sort(byOrder).map((e) => e.item)
+      items.push({ text: sub, items: subItems })
+    }
+    result['/' + top + '/'] = [{ text: top, items }]
   }
-  result.sort(
-    (a, b) =>
-      sortKey(a.text) - sortKey(b.text) || a.text.localeCompare(b.text, 'zh-CN')
-  )
   return result
 }
 

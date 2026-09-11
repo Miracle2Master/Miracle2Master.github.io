@@ -18,6 +18,7 @@ const groups = computed(() => {
     const rel = path.replace(/^\.\.\/\.\.\/\.\.\/docs\//, '')
     if (rel === 'index.md') continue
     const seg = rel.split('/')
+    if (seg[0] === 'category') continue
     const group = seg.length > 1 ? seg[0] : '其他'
     const title = seg[seg.length - 1].replace(/\.md$/, '')
     const link = '/' + rel.replace(/\.md$/, '.html')

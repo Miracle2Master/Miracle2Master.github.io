@@ -12,12 +12,15 @@ function orderOf(raw: string): number {
   return m ? parseInt(m[1], 10) : Number.MAX_SAFE_INTEGER
 }
 
+const MAX_SHOW = 5
+
 const groups = computed(() => {
   const map = new Map<string, Entry[]>()
   for (const [path, raw] of Object.entries(modules)) {
     const rel = path.replace(/^\.\.\/\.\.\/docs\//, '')
     if (rel === 'index.md') continue
     const seg = rel.split('/')
+    if (seg[0] === 'category') continue
     const group = seg.length > 1 ? seg[0] : '其他'
     const title = seg[seg.length - 1].replace(/\.md$/, '')
     const link = '/' + rel.replace(/\.md$/, '.html')
@@ -27,7 +30,13 @@ const groups = computed(() => {
   }
   const arr = Array.from(map.entries()).map(([group, entries]) => {
     entries.sort((a, b) => a.order - b.order || a.title.localeCompare(b.title, 'zh-CN'))
-    return { group, entries, order: Math.min(...entries.map((e) => e.order)) }
+    return {
+      group,
+      entries: entries.slice(0, MAX_SHOW),
+      total: entries.length,
+      link: '/category/' + group + '.html',
+      order: Math.min(...entries.map((e) => e.order))
+    }
   })
   arr.sort((a, b) => a.order - b.order || a.group.localeCompare(b.group, 'zh-CN'))
   return arr
@@ -46,6 +55,7 @@ const groups = computed(() => {
               <a :href="e.link">{{ e.title }}</a>
             </li>
           </ul>
+          <a v-if="g.total > MAX_SHOW" class="more-link" :href="g.link">查看全部（共 {{ g.total }} 篇）→</a>
         </div>
       </div>
     </div>
@@ -105,6 +115,18 @@ const groups = computed(() => {
 }
 
 .note-group a:hover {
+  color: var(--vp-c-brand-2);
+}
+
+.more-link {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--vp-c-brand-1);
+  text-decoration: none;
+}
+
+.more-link:hover {
   color: var(--vp-c-brand-2);
 }
 </style>

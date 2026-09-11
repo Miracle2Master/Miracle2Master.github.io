@@ -44,6 +44,7 @@ function buildSidebar(): Record<string, SidebarItem[]> {
     const rel = relative(docsDir, file).replace(/\\/g, '/')
     if (EXCLUDED.has(rel)) continue
     const seg = rel.split('/')
+    if (seg[0] === 'category') continue
     const top = seg[0]
     const link = '/' + rel.replace(/\.md$/, '')
     const entry = { item: { text: firstTitle(file), link }, order: orderOf(file) }

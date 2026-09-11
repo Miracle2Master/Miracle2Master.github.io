@@ -85,7 +85,7 @@ function buildSidebar(): Record<string, SidebarItem[]> {
 const sidebar = buildSidebar()
 
 export default defineConfig({
-  title: 'Miracle2Master 笔记',
+  title: '奇迹大师的学习笔记',
   description: '我的学习笔记站',
   lang: 'zh-CN',
   base: '/',

@@ -1,9 +1,9 @@
-/* 首页全屏背景氛围：背景图铺满整个视口，向下延续到内容区 */
+/* ===== 首页背景氛围 ===== */
 .VPHome {
   position: relative;
 }
 
-/* 背景图：模糊 + 低饱和 + 压暗，让文字始终是第一视觉重心 */
+/* 背景图（浅色模式）：提亮 + 低饱和，低调融入浅色主题 */
 .VPHome::before {
   content: '';
   position: fixed;
@@ -11,29 +11,42 @@
   background-image: url('/background.jpg');
   background-size: cover;
   background-position: center;
-  filter: blur(3px) saturate(0.6) brightness(0.55);
+  filter: blur(3px) saturate(0.55) brightness(1.1);
   z-index: -2;
 }
 
-/* 蒙层：整体压暗，保证文字对比度，下半部分也保持暗调 */
+/* 白色滤镜蒙层（浅色模式）：压白提亮，贴合浅色主题 */
 .VPHome::after {
   content: '';
   position: fixed;
   inset: 0;
   background: linear-gradient(
     to bottom,
-    rgba(0, 0, 0, 0.55) 0%,
-    rgba(0, 0, 0, 0.5) 35%,
-    rgba(0, 0, 0, 0.62) 100%
+    rgba(255, 255, 255, 0.5) 0%,
+    rgba(255, 255, 255, 0.68) 35%,
+    rgba(255, 255, 255, 0.85) 100%
   );
   z-index: -1;
 }
 
-/* 保证文字对比度：hero 文字统一为白色系 */
-.VPHero .name,
-.VPHero .text,
-.VPHero .tagline,
-.VPHero .main .text {
+/* ===== 深色模式：保持压暗效果 ===== */
+html.dark .VPHome::before {
+  filter: blur(3px) saturate(0.6) brightness(0.55);
+}
+
+html.dark .VPHome::after {
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.55) 0%,
+    rgba(0, 0, 0, 0.5) 35%,
+    rgba(0, 0, 0, 0.62) 100%
+  );
+}
+
+/* ===== hero 文字：浅色模式用默认深色，深色模式用白色渐变 ===== */
+html.dark .VPHero .name,
+html.dark .VPHero .text,
+html.dark .VPHero .main .text {
   color: #fff;
   background: -webkit-linear-gradient(315deg, #fff 30%, #c8d6ff 70%);
   -webkit-background-clip: text;
@@ -41,7 +54,7 @@
   -webkit-text-fill-color: transparent;
 }
 
-.VPHero .tagline {
+html.dark .VPHero .tagline {
   -webkit-text-fill-color: rgba(255, 255, 255, 0.9);
 }
 
@@ -55,4 +68,3 @@
     padding-bottom: 32px;
   }
 }
-

@@ -1,5 +1,6 @@
 import DefaultTheme from 'vitepress/theme'
 import type { Theme } from 'vitepress'
+import './style.css'
 import NoteList from './NoteList.vue'
 import CategoryList from './CategoryList.vue'
 import HomeLayout from './HomeLayout.vue'

@@ -1,0 +1,58 @@
+/* 首页全屏背景氛围：背景图铺满整个视口，向下延续到内容区 */
+.VPHome {
+  position: relative;
+}
+
+/* 背景图：模糊 + 低饱和 + 压暗，让文字始终是第一视觉重心 */
+.VPHome::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url('/background.jpg');
+  background-size: cover;
+  background-position: center;
+  filter: blur(3px) saturate(0.6) brightness(0.55);
+  z-index: -2;
+}
+
+/* 蒙层：整体压暗，保证文字对比度，下半部分也保持暗调 */
+.VPHome::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.55) 0%,
+    rgba(0, 0, 0, 0.5) 35%,
+    rgba(0, 0, 0, 0.62) 100%
+  );
+  z-index: -1;
+}
+
+/* 保证文字对比度：hero 文字统一为白色系 */
+.VPHero .name,
+.VPHero .text,
+.VPHero .tagline,
+.VPHero .main .text {
+  color: #fff;
+  background: -webkit-linear-gradient(315deg, #fff 30%, #c8d6ff 70%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.VPHero .tagline {
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.9);
+}
+
+/* 缩短 hero 底部与下方「笔记目录」区块的间距 */
+.VPHero {
+  padding-bottom: 24px;
+}
+
+@media (min-width: 640px) {
+  .VPHero {
+    padding-bottom: 32px;
+  }
+}
+

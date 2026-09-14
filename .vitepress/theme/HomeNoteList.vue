@@ -50,12 +50,10 @@ const groups = computed(() => {
       <div class="group-grid">
         <div v-for="g in groups" :key="g.group" class="note-group">
           <h3>{{ g.group }}</h3>
-          <ul>
-            <li v-for="e in g.entries" :key="e.link">
-              <a :href="e.link">{{ e.title }}</a>
-            </li>
-          </ul>
-          <a v-if="g.total > MAX_SHOW" class="more-link" :href="g.link">查看全部（共 {{ g.total }} 篇）→</a>
+          <div class="entry-list">
+            <a v-for="e in g.entries" :key="e.link" class="entry-tag" :href="e.link">{{ e.title }}</a>
+            <a v-if="g.total > MAX_SHOW" class="more-link" :href="g.link">查看全部（共 {{ g.total }} 篇）→</a>
+          </div>
         </div>
       </div>
     </div>
@@ -64,9 +62,8 @@ const groups = computed(() => {
 
 <style scoped>
 .home-note-list {
-  margin-top: 48px;
+  margin-top: 0;
   padding: 48px 0;
-  border-top: 1px solid var(--vp-c-divider);
 }
 
 .container {
@@ -85,42 +82,57 @@ const groups = computed(() => {
 }
 
 .group-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.note-group {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  padding: 20px 24px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 12px;
+  background: var(--vp-c-bg-soft);
 }
 
 .note-group h3 {
+  flex-shrink: 0;
+  min-width: 120px;
   font-size: 18px;
   line-height: 24px;
   font-weight: 600;
-  margin: 0 0 12px;
+  margin: 0;
   color: var(--vp-c-text-1);
 }
 
-.note-group ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+.entry-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
 }
 
-.note-group li {
-  margin: 0.25em 0;
-}
-
-.note-group a {
+.entry-tag {
+  display: inline-block;
+  padding: 4px 12px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 999px;
+  background: var(--vp-c-bg);
   color: var(--vp-c-brand-1);
   text-decoration: none;
   font-size: 14px;
+  line-height: 22px;
 }
 
-.note-group a:hover {
+.entry-tag:hover {
   color: var(--vp-c-brand-2);
+  border-color: var(--vp-c-brand-1);
 }
 
 .more-link {
   display: inline-block;
-  margin-top: 8px;
   font-size: 13px;
   color: var(--vp-c-brand-1);
   text-decoration: none;

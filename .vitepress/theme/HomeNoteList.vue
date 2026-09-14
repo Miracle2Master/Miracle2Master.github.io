@@ -19,6 +19,7 @@ const groups = computed(() => {
   for (const [path, raw] of Object.entries(modules)) {
     const rel = path.replace(/^\.\.\/\.\.\/docs\//, '')
     if (rel === 'index.md') continue
+    if (rel === 'notes.md') continue
     const seg = rel.split('/')
     if (seg[0] === 'category') continue
     const group = seg.length > 1 ? seg[0] : '其他'

@@ -9,7 +9,4 @@ hero:
     - theme: brand
       text: 开始阅读
       link: /notes
-    - theme: alt
-      text: 查看分类
-      link: /notes
 ---

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-const modules = import.meta.glob('../../../docs/**/*.md', { query: '?raw', import: 'default', eager: true })
+const modules = import.meta.glob('../../docs/**/*.md', { query: '?raw', import: 'default', eager: true })
 
 type Entry = { title: string; link: string; order: number }
 
@@ -15,8 +15,9 @@ function orderOf(raw: string): number {
 const groups = computed(() => {
   const map = new Map<string, Entry[]>()
   for (const [path, raw] of Object.entries(modules)) {
-    const rel = path.replace(/^\.\.\/\.\.\/\.\.\/docs\//, '')
+    const rel = path.replace(/^\.\.\/\.\.\/docs\//, '')
     if (rel === 'index.md') continue
+    if (rel === 'notes.md') continue
     const seg = rel.split('/')
     if (seg[0] === 'category') continue
     const group = seg.length > 1 ? seg[0] : '其他'

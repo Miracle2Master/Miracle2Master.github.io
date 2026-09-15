@@ -21,6 +21,7 @@
   },
   "homepage": "https://github.com/Miracle2Master/Miracle2Master.githup.io#readme",
   "devDependencies": {
+    "markdown-it-mathjax3": "^4.3.2",
     "vitepress": "^1.6.4"
   }
 }

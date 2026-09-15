@@ -90,6 +90,9 @@ export default defineConfig({
   lang: 'zh-CN',
   base: '/',
   srcDir: 'docs',
+  markdown: {
+    math: true
+  },
   ignoreDeadLinks: true,
   themeConfig: {
     nav: [

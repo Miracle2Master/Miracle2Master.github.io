@@ -18,6 +18,8 @@ const groups = computed(() => {
     const rel = path.replace(/^\.\.\/\.\.\/docs\//, '')
     if (rel === 'index.md') continue
     if (rel === 'notes.md') continue
+    if (rel === 'planning.md') continue
+    if (rel.startsWith('planning/')) continue
     const seg = rel.split('/')
     if (seg[0] === 'category') continue
     const group = seg.length > 1 ? seg[0] : '其他'
@@ -50,11 +52,64 @@ const groups = computed(() => {
 </template>
 
 <style scoped>
+.note-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+  margin: 0;
+}
+
+.note-group {
+  border: 1px solid rgba(34, 211, 238, 0.28);
+  border-radius: 12px;
+  background: var(--vp-c-bg-soft);
+  padding: 20px 24px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.note-group:hover {
+  border-color: rgba(34, 211, 238, 0.6);
+  box-shadow: 0 0 14px rgba(34, 211, 238, 0.22);
+}
+
+.note-group h2 {
+  font-size: 18px;
+  line-height: 24px;
+  font-weight: 600;
+  margin: 0 0 12px;
+  color: var(--vp-c-text-1);
+}
+
 .note-list ul {
   list-style: none;
   padding-left: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
+
 .note-list li {
-  margin: 0.25em 0;
+  margin: 0;
+}
+
+.note-list a {
+  display: inline-block;
+  padding: 4px 12px;
+  border: 1px solid rgba(34, 211, 238, 0.35);
+  border-radius: 999px;
+  background: rgba(34, 211, 238, 0.06);
+  color: var(--vp-c-brand-1);
+  text-decoration: none;
+  font-size: 14px;
+  line-height: 22px;
+  transition: all 0.2s ease;
+}
+
+.note-list a:hover {
+  color: #04121a;
+  background: var(--vp-c-brand-1);
+  border-color: var(--vp-c-brand-1);
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
 }
 </style>

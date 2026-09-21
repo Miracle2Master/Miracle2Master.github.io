@@ -587,7 +587,7 @@ public class JedisClusterTest {
 }
 ```
 
-2.2.2 Spring集群环境下批处理代码
+#### 2.2.2 Spring集群环境下批处理代码
 
 ```java
    @Test
@@ -613,7 +613,7 @@ public class JedisClusterTest {
 
 通过 RedisFuture<String> mset = super.mset(op);进行异步的消息发送
 
-```Java
+```java
 @Override
 public RedisFuture<String> mset(Map<K, V> map) {
 

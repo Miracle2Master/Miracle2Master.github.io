@@ -2,11 +2,6 @@
 order: 31
 ---
 
-**号外号外！现在点击****[黑马逆袭之路！！！](https://b11et3un53m.feishu.cn/wiki/MnIqwghIsitrrVkeasjcmWA5nhB)****，添加黑马老师即可领取多套试学课程。还可以预约1V1职业规划咨询帮你找准定位、不再盲目。赶快行动起来吧！**
-
-B站对应视频：
-
-暂时无法在飞书文档外展示此内容
 
 黑马商城作为一个电商项目，商品的搜索肯定是访问频率最高的页面之一。目前搜索功能是基于数据库的模糊搜索来实现的，存在很多问题。
 
@@ -27,12 +22,6 @@ B站对应视频：
 数据库的模糊搜索功能单一，匹配条件非常苛刻，必须恰好包含用户搜索的关键字。而在搜索引擎中，用户输入出现个别错字，或者用拼音搜索、同义词搜索都能正确匹配到数据。
 
 综上，在面临海量数据的搜索，或者有一些复杂搜索需求的时候，推荐使用专门的搜索引擎来实现搜索功能。
-
-目前全球的搜索引擎技术排名如下：
-
-![img](https://my.feishu.cn/space/api/box/stream/download/asynccode/?code=MWUwMTc4NWMwZmZmYzgwNWRkNTljM2VmNGE3NDU2NGFfU3pTNTBjWm5Ga1hqeFpsWG42aHFpc1pTcThPYjVWbFpfVG9rZW46S2VwRmJkRnpPb25vc0d4UTd5eGNTZ2p6bnVnXzE3ODMzNDIzNTE6MTc4MzM0NTk1MV9WNA&add_watermark=true&scene_type=CCM)
-
-排名第一的就是我们今天要学习的elasticsearch.
 
 elasticsearch是一款非常强大的开源搜索引擎，支持的功能非常多，例如：
 
@@ -64,7 +53,7 @@ https://www.elastic.co/cn/elasticsearch/
 
 本章我们一起来初步了解一下Elasticsearch的基本原理和一些基础概念。
 
-## 1.1.认识和安装
+## 1.1 认识和安装
 
 Elasticsearch是由elastic公司开发的一套搜索引擎技术，它是elastic技术栈中的一部分。完整的技术栈包括：
 
@@ -73,8 +62,6 @@ Elasticsearch是由elastic公司开发的一套搜索引擎技术，它是elasti
 - Kibana：用于数据可视化
 
 整套技术栈被称为ELK，经常用来做日志收集、系统监控和状态分析等等：
-
-![img](https://my.feishu.cn/space/api/box/stream/download/asynccode/?code=NjFkYjUwNmUwMGU3YjkxOTY1ZThmZmU0ZDA0YmM4MTBfY2M5ZGd1SVhoRWJrZ3NEMlFpVDJOWkx6ckVoOWQ5bDhfVG9rZW46VFBTa2JrdG5kb0duMmN4RVhpRWNZNjNkbmZpXzE3ODMzNDIzNTE6MTc4MzM0NTk1MV9WNA&add_watermark=true&scene_type=CCM)
 
 整套技术栈的核心就是用来**存储**、**搜索**、**计算**的Elasticsearch，因此我们接下来学习的核心也是Elasticsearch。
 
@@ -94,7 +81,7 @@ Kibana是elastic公司提供的用于操作Elasticsearch的可视化控制台。
 - 对Elasticsearch的集群状态监控
 - 它还提供了一个开发控制台（DevTools），在其中对Elasticsearch的Restful的API接口提供了**语法提示**
 
-### 1.1.1.安装elasticsearch
+### 1.1.1 安装elasticsearch
 
 通过下面的Docker命令即可安装单机版本的elasticsearch：
 
@@ -122,7 +109,7 @@ docker run -d \
 
 ![img](img/1783342375676-9.png)
 
-### 1.1.2.安装Kibana
+### 1.1.2 安装Kibana
 
 通过下面的Docker命令，即可部署Kibana：
 
@@ -151,13 +138,13 @@ kibana:7.12.1
 
 ![img](img/1783342375676-13.png)
 
-## 1.2.倒排索引
+## 1.2 倒排索引
 
 elasticsearch之所以有如此高性能的搜索表现，正是得益于底层的倒排索引技术。那么什么是倒排索引呢？
 
 **倒排**索引的概念是基于MySQL这样的**正向**索引而言的。
 
-### 1.2.1.正向索引
+### 1.2.1 正向索引
 
 我们先来回顾一下正向索引。
 
@@ -199,7 +186,7 @@ select * from tb_goods where title like '%手机%';
 
 而倒排索引恰好解决的就是根据部分词条模糊匹配的问题。
 
-### 1.2.2.倒排索引
+### 1.2.2 倒排索引
 
 倒排索引中有两个非常重要的概念：
 
@@ -244,13 +231,13 @@ select * from tb_goods where title like '%手机%';
 
 2）对用户输入条件**分词**，得到词条：`华为`、`手机`。
 
-3）拿着词条在倒排索引中查找（**由于词条有****索引****，查询效率很高**），即可得到包含词条的文档id：`1、2、3`。
+3）拿着词条在倒排索引中查找（由于词条有索引，查询效率很高），即可得到包含词条的文档id：`1、2、3`。
 
 4）拿着文档`id`到正向索引中查找具体文档即可（由于`id`也有索引，查询效率也很高）。
 
 虽然要先查询倒排索引，再查询倒排索引，但是无论是词条、还是文档id都建立了索引，查询速度非常快！无需全表扫描。
 
-### 1.2.3.正向和倒排
+### 1.2.3 正向和倒排
 
 那么为什么一个叫做正向索引，一个叫做倒排索引呢？
 
@@ -277,11 +264,11 @@ select * from tb_goods where title like '%手机%';
   - 只能给词条创建索引，而不是字段
   - 无法根据字段做排序
 
-## 1.3.基础概念
+## 1.3 基础概念
 
 elasticsearch中有很多独有的概念，与mysql中略有差别，但也有相似之处。
 
-### 1.3.1.文档和字段
+### 1.3.1 文档和字段
 
 elasticsearch是面向**文档（Document）**存储的，可以是数据库中的一条商品数据，一个订单信息。文档数据会被序列化为`json`格式后存储在`elasticsearch`中：
 
@@ -312,7 +299,7 @@ elasticsearch是面向**文档（Document）**存储的，可以是数据库中�
 
 因此，原本数据库中的一行数据就是ES中的一个JSON文档；而数据库中每行数据都包含很多列，这些列就转换为JSON文档中的**字段（Field）**。
 
-### 1.3.2.索引和映射
+### 1.3.2 索引和映射
 
 随着业务发展，需要在es中存储的文档也会越来越多，比如有商品的文档、用户的文档、订单文档等等：
 
@@ -392,7 +379,7 @@ elasticsearch是面向**文档（Document）**存储的，可以是数据库中�
 
 数据库的表会有约束信息，用来定义表的结构、字段的名称、类型等信息。因此，索引库中就有**映射（mapping）**，是索引中文档的字段约束信息，类似表的结构约束。
 
-### 1.3.3.mysql与elasticsearch
+### 1.3.3 mysql与elasticsearch
 
 我们统一的把mysql与elasticsearch的概念做一下对比：
 
@@ -423,11 +410,11 @@ elasticsearch是面向**文档（Document）**存储的，可以是数据库中�
 
 ![img](img/1783342375676-19.png)
 
-## 1.4.IK分词器
+## 1.4 IK分词器
 
 Elasticsearch的关键就是倒排索引，而倒排索引依赖于对文档内容的分词，而分词则需要高效、精准的分词算法，IK分词器就是这样一个中文分词算法。
 
-### 1.4.1.安装IK分词器
+### 1.4.1 安装IK分词器
 
 **方案一**：在线安装
 
@@ -485,7 +472,7 @@ docker volume inspect es-plugins
 docker restart es
 ```
 
-### 1.4.2.使用IK分词器
+### 1.4.2 使用IK分词器
 
 IK分词器包含两种模式：
 
@@ -644,7 +631,7 @@ POST /_analyze
 }
 ```
 
-### 1.4.3.拓展词典
+### 1.4.3 拓展词典
 
 随着互联网的发展，“造词运动”也越发的频繁。出现了很多新的词语，在原有的词汇列表中并不存在。比如：“泰裤辣”，“传智播客” 等。
 
@@ -819,7 +806,7 @@ docker logs -f elasticsearch
 }
 ```
 
-### 1.4.4.总结
+### 1.4.4 总结
 
 分词器的作用是什么？
 
@@ -840,7 +827,7 @@ IK分词器如何拓展词条？如何停用词条？
 
 Index就类似数据库表，Mapping映射就类似表的结构。我们要向es中存储数据，必须先创建Index和Mapping
 
-## 2.1.Mapping映射属性
+## 2.1 Mapping映射属性
 
 Mapping是对索引库中文档的约束，常见的Mapping属性包括：
 
@@ -884,13 +871,13 @@ Mapping是对索引库中文档的约束，常见的Mapping属性包括：
 | name       | firstName    | `keyword`          | 字符串，但是不分词   |                      |            | ——   |
 | lastName   | `keyword`    | 字符串，但是不分词 |                      |                      | ——         |      |
 
-## 2.2.索引库的CRUD
+## 2.2 索引库的CRUD
 
 由于Elasticsearch采用的是Restful风格的API，因此其请求方式和路径相对都比较规范，而且请求参数也都采用JSON风格。
 
 我们直接基于Kibana的DevTools来编写请求做测试，由于有语法提示，会非常方便。
 
-### 2.2.1.创建索引库和映射
+### 2.2.1 创建索引库和映射
 
 **基本语法**：
 
@@ -953,7 +940,7 @@ PUT /索引库名称
 }
 ```
 
-### 2.2.2.查询索引库
+### 2.2.2 查询索引库
 
 **基本语法**：
 
@@ -973,7 +960,7 @@ GET /索引库名
 GET /heima
 ```
 
-### 2.2.3.修改索引库
+### 2.2.3 修改索引库
 
 倒排索引结构虽然不复杂，但是一旦数据结构改变（比如改变了分词器），就需要重新创建倒排索引，这简直是灾难。因此索引库**一旦创建，无法修改mapping**。
 
@@ -1005,7 +992,7 @@ PUT /heima/_mapping
 }
 ```
 
-### 2.2.4.删除索引库
+### 2.2.4 删除索引库
 
 **语法：**
 
@@ -1025,7 +1012,7 @@ DELETE /索引库名
 DELETE /heima
 ```
 
-### 2.2.5.总结
+### 2.2.5 总结
 
 索引库操作有哪些？
 
@@ -1042,7 +1029,7 @@ DELETE /heima
 
 Elasticsearch中的数据其实就是JSON风格的文档。操作文档自然保护`增`、`删`、`改`、`查`等几种常见操作，我们分别来学习。
 
-## 3.1.新增文档
+## 3.1 新增文档
 
 **语法：**
 
@@ -1076,7 +1063,7 @@ POST /heima/_doc/1
 
 ![img](img/1783342375676-23.png)
 
-## 3.2.查询文档
+## 3.2 查询文档
 
 根据rest风格，新增是post，查询应该是get，不过查询一般都需要条件，这里我们把文档id带上。
 
@@ -1096,7 +1083,7 @@ GET /heima/_doc/1
 
 ![img](img/1783342375676-24.png)
 
-## 3.3.删除文档
+## 3.3 删除文档
 
 删除使用DELETE请求，同样，需要根据id进行删除：
 
@@ -1116,14 +1103,14 @@ DELETE /heima/_doc/1
 
 ![img](img/1783342375676-25.png)
 
-## 3.4.修改文档
+## 3.4 修改文档
 
 修改有两种方式：
 
 - 全量修改：直接覆盖原来的文档
 - 局部修改：修改文档中的部分字段
 
-### 3.4.1.全量修改
+### 3.4.1 全量修改
 
 全量修改是覆盖原来的文档，其本质是两步操作：
 
@@ -1165,7 +1152,7 @@ PUT /heima/_doc/1
 
 ![img](img/1783342375676-27.png)
 
-### 3.4.2.局部修改
+### 3.4.2 局部修改
 
 局部修改是只修改指定id匹配的文档中的部分字段。
 
@@ -1195,7 +1182,7 @@ POST /heima/_update/1
 
 ![img](img/1783342375676-28.png)
 
-## 3.5.批处理
+## 3.5 批处理
 
 批处理采用POST请求，基本语法如下：
 
@@ -1242,7 +1229,7 @@ POST /_bulk
 {"delete":{"_index":"heima", "_id": "4"}}
 ```
 
-## 3.6.总结
+## 3.6 总结
 
 文档操作有哪些？
 
@@ -1269,7 +1256,7 @@ https://www.elastic.co/guide/en/elasticsearch/client/index.html
 
 ![img](img/1783342375676-30.png)
 
-## 4.1.初始化RestClient
+## 4.1 初始化RestClient
 
 在elasticsearch提供的API中，与elasticsearch一切交互都封装在一个名为`RestHighLevelClient`的类中，必须先完成这个对象的初始化，建立与elasticsearch的连接。
 
@@ -1341,11 +1328,11 @@ public class IndexTest {
 }
 ```
 
-## 4.1.创建索引库
+## 4.1 创建索引库
 
 由于要实现对商品搜索，所以我们需要将商品添加到Elasticsearch中，不过需要根据搜索业务的需求来设定索引库结构，而不是一股脑的把MySQL数据写入Elasticsearch.
 
-### 4.1.1.Mapping映射
+### 4.1.1 Mapping映射
 
 搜索页面的效果如图所示：
 
@@ -1438,7 +1425,7 @@ PUT /items
 }
 ```
 
-### 4.1.2.创建索引
+### 4.1.2 创建索引
 
 创建索引库的API如下：
 
@@ -1509,7 +1496,7 @@ static final String MAPPING_TEMPLATE = "{\n" +
             "}";
 ```
 
-## 4.2.删除索引库
+## 4.2 删除索引库
 
 删除索引库的请求非常简单：
 
@@ -1541,7 +1528,7 @@ void testDeleteIndex() throws IOException {
 }
 ```
 
-## 4.3.判断索引库是否存在
+## 4.3 判断索引库是否存在
 
 判断索引库是否存在，本质就是查询，对应的请求语句是：
 
@@ -1567,7 +1554,7 @@ void testExistsIndex() throws IOException {
 }
 ```
 
-## 4.4.总结
+## 4.4 总结
 
 JavaRestClient操作elasticsearch的流程基本类似。核心是`client.indices()`方法来获取索引库的操作对象。
 
@@ -1620,11 +1607,11 @@ public class DocumentTest {
 }
 ```
 
-## 5.1.新增文档
+## 5.1 新增文档
 
 我们需要将数据库中的商品信息导入elasticsearch中，而不是造假数据了。
 
-### 5.1.1.实体类
+### 5.1.1 实体类
 
 索引库结构与数据库结构还存在一些差异，因此我们要定义一个索引库结构对应的实体。
 
@@ -1675,7 +1662,7 @@ public class ItemDoc{
 }
 ```
 
-### 5.1.2.API语法
+### 5.1.2 API语法
 
 新增文档的请求语法如下：
 
@@ -1699,7 +1686,7 @@ POST /{索引库名}/_doc/1
 
 变化的地方在于，这里直接使用`client.xxx()`的API，不再需要`client.indices()`了。
 
-### 5.1.3.完整代码
+### 5.1.3 完整代码
 
 我们导入商品数据，除了参考API模板“三步走”以外，还需要做几点准备工作：
 
@@ -1737,11 +1724,11 @@ void testAddDocument() throws IOException {
 }
 ```
 
-## 5.2.查询文档
+## 5.2 查询文档
 
 我们以根据id查询文档为例
 
-### 5.2.1.语法说明
+### 5.2.1 语法说明
 
 查询的请求语句如下：
 
@@ -1767,7 +1754,7 @@ GET /{索引库名}/_doc/{id}
 - 2）发送请求，得到结果。因为是查询，这里调用`client.get()`方法
 - 3）解析结果，就是对JSON做反序列化
 
-### 5.2.2.完整代码
+### 5.2.2 完整代码
 
 在`item-service`的`DocumentTest`测试类中，编写单元测试：
 
@@ -1786,7 +1773,7 @@ void testGetDocumentById() throws IOException {
 }
 ```
 
-## 5.3.删除文档
+## 5.3 删除文档
 
 删除的请求语句如下：
 
@@ -1812,7 +1799,7 @@ void testDeleteDocument() throws IOException {
 }
 ```
 
-## 5.4.修改文档
+## 5.4 修改文档
 
 修改我们讲过两种方式：
 
@@ -1826,7 +1813,7 @@ void testDeleteDocument() throws IOException {
 
 这里不再赘述，我们主要关注局部修改的API即可。
 
-### 5.4.1.语法说明
+### 5.4.1 语法说明
 
 局部修改的请求语法如下：
 
@@ -1850,7 +1837,7 @@ POST /{索引库名}/_update/{id}
 - 2）准备参数。也就是JSON文档，里面包含要修改的字段
 - 3）更新文档。这里调用`client.update()`方法
 
-### 5.4.2.完整代码
+### 5.4.2 完整代码
 
 在`item-service`的`DocumentTest`测试类中，编写单元测试：
 
@@ -1869,7 +1856,7 @@ void testUpdateDocument() throws IOException {
 }
 ```
 
-## 5.5.批量导入文档
+## 5.5 批量导入文档
 
 在之前的案例中，我们都是操作单个文档。而数据库中的商品数据实际会达到数十万条，某些项目中可能达到数百万条。
 
@@ -1885,7 +1872,7 @@ void testUpdateDocument() throws IOException {
 
 接下来，我们就学习下如何利用JavaAPI实现批量文档导入。
 
-### 5.5.1.语法说明
+### 5.5.1 语法说明
 
 批处理与前面讲的文档的CRUD步骤基本一致：
 
@@ -1923,7 +1910,7 @@ void testBulk() throws IOException {
 }
 ```
 
-### 5.5.2.完整代码
+### 5.5.2 完整代码
 
 当我们要导入商品数据时，由于商品数量达到数十万，因此不可能一次性全部导入。建议采用循环遍历方式，每次导入1000条左右的数据。
 
@@ -1963,7 +1950,7 @@ void testLoadItemDocs() throws IOException {
 }
 ```
 
-## 5.6.小结
+## 5.6 小结
 
 文档操作的基本步骤：
 
@@ -1977,17 +1964,17 @@ void testLoadItemDocs() throws IOException {
 
 # 6.作业
 
-## 6.1.服务拆分
+## 6.1 服务拆分
 
 搜索业务并发压力可能会比较高，目前与商品服务在一起，不方便后期优化。
 
 **需求**：创建一个新的微服务，命名为`search-service`，将搜索相关功能抽取到这个微服务中
 
-## 6.2.商品查询接口
+## 6.2 商品查询接口
 
 在`item-service`服务中提供一个根据id查询商品的功能，并编写对应的FeignClient
 
-## 6.3.数据同步
+## 6.3 数据同步
 
 每当商品服务对商品实现增删改时，索引库的数据也需要同步更新。
 

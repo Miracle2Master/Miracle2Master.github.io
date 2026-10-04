@@ -2,35 +2,9 @@
 order: 61
 ---
 
-**号外号外！现在点击****[黑马逆袭之路！！！](https://b11et3un53m.feishu.cn/wiki/MnIqwghIsitrrVkeasjcmWA5nhB)****，添加黑马老师即可领取多套试学课程。还可以预约1V1职业规划咨询帮你找准定位、不再盲目。赶快行动起来吧！**
+# 1.快速入门
 
-本篇学习文档对应B站视频：
-
-暂时无法在飞书文档外展示此内容
-
-大家在日常开发中应该能发现，单表的CRUD功能代码重复度很高，也没有什么难度。而这部分代码量往往比较大，开发起来比较费时。
-
-因此，目前企业中都会使用一些组件来简化或省略单表的CRUD开发工作。目前在国内使用较多的一个组件就是MybatisPlus.
-
-官方网站如下：
-
-暂时无法在飞书文档外展示此内容
-
-当然，MybatisPlus不仅仅可以简化单表操作，而且还对Mybatis的功能有很多的增强。可以让我们的开发更加的简单，高效。
-
-通过今天的学习，我们要达成下面的目标：
-
-- 能利用MybatisPlus实现基本的CRUD
-- 会使用条件构建造器构建查询和更新语句
-- 会使用MybatisPlus中的常用注解
-- 会使用MybatisPlus处理枚举、JSON类型字段
-- 会使用MybatisPlus实现分页
-
-# **1.快速入门**
-
-为了方便测试，我们先创建一个新的项目，并准备一些基础数据。
-
-## **1.1.环境准备**
+## 1.1 环境准备
 
 复制课前资料提供好的一个项目到你的工作空间（不要包含空格和特殊字符）：
 
@@ -72,14 +46,14 @@ logging:
     dateformat: HH:mm:ss
 ```
 
-## **1.2.快速开始**
+## 1.2 快速开始
 
 比如我们要实现User表的CRUD，只需要下面几步：
 
 - 引入MybatisPlus依赖
 - 定义Mapper
 
-### **1.2.1引入依赖**
+### 1.2.1 引入依赖
 
 MybatisPlus提供了starter，实现了自动Mybatis以及MybatisPlus的自动装配功能，坐标如下：
 
@@ -118,7 +92,7 @@ MybatisPlus提供了starter，实现了自动Mybatis以及MybatisPlus的自动�
 </dependencies>
 ```
 
-### **1.2.2.****定义Mapper**
+### 1.2.2 定义Mapper
 
 为了简化单表CRUD，MybatisPlus提供了一个基础的`BaseMapper`接口，其中已经实现了单表的CRUD：
 
@@ -140,7 +114,7 @@ public interface UserMapper extends BaseMapper<User> {
 }
 ```
 
-### **1.2.3.测试**
+### 1.2.3 测试
 
 新建一个测试类，编写几个单元测试，测试基本的CRUD功能：
 
@@ -215,7 +189,7 @@ user = User(id=5, username=Lucy, password=123, phone=18688990011, info={"age": 2
 
 只需要继承BaseMapper就能省去所有的单表CRUD，是不是非常简单！
 
-## **1.3.****常见注解**
+## 1.3 常见注解
 
 在刚刚的入门案例中，我们仅仅引入了依赖，继承了BaseMapper就能使用MybatisPlus，非常简单。但是问题来了： MybatisPlus如何知道我们要查询的是哪张表？表中有哪些字段呢？
 
@@ -233,7 +207,7 @@ MybatisPlus就是根据PO实体的信息来推断出表的信息，从而生成S
 
 但很多情况下，默认的实现与实际场景不符，因此MybatisPlus提供了一些注解便于我们声明表信息。
 
-### **1.3.1.****@****TableName**
+### 1.3.1 @TableName
 
 说明：
 
@@ -261,7 +235,7 @@ TableName注解除了指定表名以外，还可以指定很多其它属性：
 | autoResultMap    | boolean  | 否           | false      | 是否自动构建 resultMap 并使用（如果设置 resultMap 则不会进行 resultMap 的自动构建与注入） |
 | excludeProperty  | String[] | 否           | {}         | 需要排除的属性名 @since 3.3.1                                |
 
-### **1.3.2.@TableId**
+### 1.3.2 @TableId
 
 说明：
 
@@ -305,7 +279,7 @@ public class User {
 - `INPUT`：手动生成id
 - `ASSIGN_ID`：雪花算法生成`Long`类型的全局唯一id，这是默认的ID策略
 
-### **1.3.3.@****TableField**
+### 1.3.3 @TableField
 
 说明：
 
@@ -351,7 +325,7 @@ public class User {
 | typeHandler      | TypeHander | 否       |                       | 类型处理器 (该默认值不代表会按照该值生效)                    |
 | numericScale     | String     | 否       | ""                    | 指定小数点后保留的位数                                       |
 
-## **1.4.常见配置**
+## 1.4 常见配置
 
 MybatisPlus也支持基于yaml文件的自定义配置，详见官方文档：
 
@@ -406,11 +380,11 @@ void testQuery() {
 }
 ```
 
-# **2.核心功能**
+# 2.核心功能
 
 刚才的案例中都是以id为条件的简单CRUD，一些复杂条件的SQL语句就要用到一些更高级的功能了。
 
-## **2.1.****条件构造器**
+## 2.1 条件构造器
 
 除了新增以外，修改、删除、查询的SQL语句都需要指定where条件。因此BaseMapper中提供的相关方法除了以`id`作为`where`条件以外，还支持更加复杂的`where`条件。
 
@@ -434,7 +408,7 @@ void testQuery() {
 
 接下来，我们就来看看如何利用`Wrapper`实现复杂查询。
 
-### **2.1.1.****QueryWrapper**
+### 2.1.1 QueryWrapper
 
 无论是修改、删除、查询，都可以使用QueryWrapper来构建查询条件。接下来看一些例子： **查询**：查询出名字中带`o`的，存款大于等于1000元的人。代码如下：
 
@@ -466,7 +440,7 @@ void testUpdateByQueryWrapper() {
 }
 ```
 
-### **2.1.2.UpdateWrapper**
+### 2.1.2 UpdateWrapper
 
 基于BaseMapper中的update方法更新时只能直接赋值，对于一些复杂的需求就难以实现。 例如：更新id为`1,2,4`的用户的余额，扣200，对应的SQL应该是：
 
@@ -490,7 +464,7 @@ void testUpdateWrapper() {
 }
 ```
 
-### **2.1.3.****LambdaQueryWrapper**
+### 2.1.3 LambdaQueryWrapper
 
 无论是QueryWrapper还是UpdateWrapper在构造条件的时候都需要写死字段名称，会出现字符串`魔法值`。这在编程规范中显然是不推荐的。 那怎么样才能不写字段名，又能知道字段名呢？
 
@@ -518,7 +492,7 @@ void testLambdaQueryWrapper() {
 }
 ```
 
-## **2.2****.****自定义****SQL**
+## 2.2 自定义SQL
 
 在演示UpdateWrapper的案例中，我们在代码中编写了更新的SQL语句：
 
@@ -528,7 +502,7 @@ void testLambdaQueryWrapper() {
 
 所以，MybatisPlus提供了自定义SQL功能，可以让我们利用Wrapper生成查询条件，再结合Mapper.xml编写SQL
 
-### **2.2.1.基本用法**
+### 2.2.1 基本用法
 
 以当前案例来说，我们可以这样写：
 
@@ -563,7 +537,7 @@ public interface UserMapper extends BaseMapper<User> {
 
 这样就省去了编写复杂查询条件的烦恼了。
 
-### **2.2.2.多表关联**
+### 2.2.2 多表关联
 
 理论上来讲MyBatisPlus是不支持多表查询的，不过我们可以利用Wrapper中自定义条件结合自定义SQL来实现多表查询的效果。 例如，我们要查询出所有收货地址在北京的并且用户id在1、2、4之中的用户 要是自己基于mybatis实现SQL，大概是这样的：
 
@@ -616,7 +590,7 @@ List<User> queryUserByWrapper(@Param("ew")QueryWrapper<User> wrapper);
 </select>
 ```
 
-## **2.3.****Service接口**
+## 2.3 Service接口
 
 MybatisPlus不仅提供了BaseMapper，还提供了通用的Service接口及默认实现，封装了一些常用的service模板方法。 通用接口为`IService`，默认实现为`ServiceImpl`，其中封装的方法可以分为以下几类：
 
@@ -628,7 +602,7 @@ MybatisPlus不仅提供了BaseMapper，还提供了通用的Service接口及默�
 - `count`：计数
 - `page`：分页查询
 
-### **2.3.1.****CRUD**
+### 2.3.1 CRUD
 
 我们先俩看下基本的CRUD接口。 **新增**：
 
@@ -685,7 +659,7 @@ MybatisPlus不仅提供了BaseMapper，还提供了通用的Service接口及默�
 
 ![img](img/1778249940479-22.png)
 
-### **2.3.2.基本用法**
+### 2.3.2 基本用法
 
 由于`Service`中经常需要定义与业务有关的自定义方法，因此我们不能直接使用`IService`，而是自定义`Service`接口，然后继承`IService`以拓展方法。同时，让自定义的`Service实现类`继承`ServiceImpl`，这样就不用自己实现`IService`中的接口了。
 
@@ -972,7 +946,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
 void deductMoneyById(@Param("id") Long id, @Param("money") Integer money);
 ```
 
-### **2.3.3.****Lambda**
+### 2.3.3 Lambda
 
 IService中还提供了Lambda功能来简化我们的复杂查询及更新功能。我们通过两个案例来学习一下。
 
@@ -1103,7 +1077,7 @@ public void deductBalance(Long id, Integer money) {
 }
 ```
 
-### **2.3.4.****批量新增**
+### 2.3.4 批量新增
 
 IService中的批量新增功能使用起来非常方便，但有一点注意事项，我们先来测试一下。 首先我们测试逐条插入数据：
 
@@ -1241,15 +1215,15 @@ spring:
 
 ![img](img/1778249940479-27.png)
 
-# **3.扩展功能**
+# 3.扩展功能
 
-## **3.1.代码生成**
+## 3.1 代码生成
 
 在使用MybatisPlus以后，基础的`Mapper`、`Service`、`PO`代码相对固定，重复编写也比较麻烦。因此MybatisPlus官方提供了代码生成器根据数据库表结构生成`PO`、`Mapper`、`Service`等相关代码。只不过代码生成器同样要编码使用，也很麻烦。
 
 这里推荐大家使用一款`MybatisPlus`的插件，它可以基于图形化界面完成`MybatisPlus`的代码生成，非常简单。
 
-### **3.1.1.安装插件**
+### 3.1.1 安装插件
 
 在`Idea`的plugins市场中搜索并安装`MyBatisPlus`插件：
 
@@ -1257,7 +1231,7 @@ spring:
 
 然后重启你的Idea即可使用。
 
-### **3.1.2.使用**
+### 3.1.2 使用
 
 刚好数据库中还有一张address表尚未生成对应的实体和mapper等基础代码。我们利用插件生成一下。 首先需要配置数据库地址，在Idea顶部菜单中，找到`other`，选择`Config Database`：
 
@@ -1279,7 +1253,7 @@ spring:
 
 最终，代码自动生成到指定的位置了：
 
-## **3.2.****静态工具**
+## 3.2 静态工具
 
 有的时候Service之间也会相互调用，为了避免出现循环依赖问题，MybatisPlus提供一个静态工具类：`Db`，其中的一些静态方法与`IService`中方法签名基本一致，也可以帮助我们实现CRUD功能：
 
@@ -1417,7 +1391,7 @@ public UserVO queryUserAndAddressById(Long userId) {
 
 -  根据id批量查询用户，并查询出用户对应的所有地址
 
-## **3.3.****逻辑删除**
+## 3.3 逻辑删除
 
 对于一些比较重要的数据，我们往往会采用逻辑删除的方案，即：
 
@@ -1489,7 +1463,7 @@ void testQuery() {
 
 因此，我不太推荐采用逻辑删除功能，如果数据不能删除，可以采用把数据迁移到其它表的办法。
 
-## **3.3.通用枚举**
+## 3.3 通用枚举
 
 User类中有一个用户状态字段：
 
@@ -1499,7 +1473,7 @@ User类中有一个用户状态字段：
 
 因此，MybatisPlus提供了一个处理枚举的类型转换器，可以帮我们**把****枚举类型与数据库类型自动转换**。
 
-### **3.3.1.定义枚举**
+### 3.3.1 定义枚举
 
 我们定义一个用户状态的枚举：
 
@@ -1536,7 +1510,7 @@ public enum UserStatus {
 
 ![img](img/1778249940479-41.png)
 
-### **3.3.2.****配置枚举处理****器**
+### 3.3.2 配置枚举处理器
 
 在application.yaml文件中添加配置：
 
@@ -1546,7 +1520,7 @@ mybatis-plus:
     default-enum-type-handler: com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler
 ```
 
-### **3.3.3.测试**
+### 3.3.3 测试
 
 ```Java
 @Test
@@ -1572,7 +1546,7 @@ void testService() {
 
 ![img](img/1778249940479-45.png)
 
-## **3.4.****JSON****类型处理器**
+## 3.4 JSON类型处理器
 
 数据库的user表中有一个`info`字段，是JSON类型：
 
@@ -1596,7 +1570,7 @@ void testService() {
 
 接下来，我们就来看看这个处理器该如何使用。
 
-### **3.4.1.定义实体**
+### 3.4.1 定义实体
 
 首先，我们定义一个单独实体类来与info字段的属性匹配：
 
@@ -1617,7 +1591,7 @@ public class UserInfo {
 }
 ```
 
-### **3.4.2.使用类型处理器**
+### 3.4.2 使用类型处理器
 
 接下来，将User类的info字段修改为UserInfo类型，并声明类型处理器：
 
@@ -1639,13 +1613,13 @@ public class UserInfo {
 
 ![img](img/1778249940480-53.png)
 
-## **3.5.配置加密（选学）**
+## 3.5 配置加密（选学）
 
 目前我们配置文件中的很多参数都是明文，如果开发人员发生流动，很容易导致敏感信息的泄露。所以MybatisPlus支持配置文件的加密和解密功能。
 
 我们以数据库的用户名和密码为例。
 
-### **3.5.1.生成****秘钥**
+### 3.5.1 生成秘钥
 
 首先，我们利用AES工具生成一个随机秘钥，然后对用户名、密码加密：
 
@@ -1682,7 +1656,7 @@ username = px2bAbnUfiY8K/IgsKvscg==
 password = FGvCSEaOuga3ulDAsxw68Q==
 ```
 
-### **3.5.2.修改配置**
+### 3.5.2 修改配置
 
 修改application.yaml文件，把jdbc的用户名、密码修改为刚刚加密生成的密文：
 
@@ -1695,7 +1669,7 @@ spring:
     password: mpw:EUFmeH3cNAzdRGdOQcabWg== # 密文要以 mpw:开头
 ```
 
-### **3.5.3.测试**
+### 3.5.3 测试
 
 在启动项目的时候，需要把刚才生成的秘钥添加到启动参数中，像这样：
 
@@ -1707,7 +1681,7 @@ spring:
 
 然后随意运行一个单元测试，可以发现数据库查询正常。
 
-# **4.插件功能**
+# 4.插件功能
 
 MybatisPlus提供了很多的插件功能，进一步拓展其功能。目前已有的插件有：
 
@@ -1726,11 +1700,11 @@ MybatisPlus提供了很多的插件功能，进一步拓展其功能。目前已
 
 这里我们以分页插件为里来学习插件的用法。
 
-## **4.1.分页插件**
+## 4.1 分页插件
 
 在未引入分页插件的情况下，`MybatisPlus`是不支持分页功能的，`IService`和`BaseMapper`中的分页方法都无法正常起效。 所以，我们必须配置分页插件。
 
-### **4.1.1.配置分页插件**
+### 4.1.1 配置分页插件
 
 在项目中新建一个配置类：
 
@@ -1761,7 +1735,7 @@ public class MybatisConfig {
 }
 ```
 
-### **4.1.2.分页****API**
+### 4.1.2 分页API
 
 编写一个分页查询的测试：
 
@@ -1796,7 +1770,7 @@ page.addOrder(new OrderItem("balance", false));
 userService.page(page);
 ```
 
-## **4.2.通用分页实体**
+## 4.2 通用分页实体
 
 现在要实现一个用户分页查询的接口，接口规范如下：
 
@@ -1814,7 +1788,7 @@ userService.page(page);
 - `PageDTO`：分页结果实体，包含总条数、总页数、当前页数据
 - `UserVO`：用户页面视图实体
 
-### **4.2.1.实体**
+### 4.2.1 实体
 
 由于UserQuery之前已经定义过了，并且其中已经包含了过滤条件，具体代码如下：
 
@@ -1921,7 +1895,7 @@ public class PageDTO<T> {
 }
 ```
 
-### **4.2.2.开发接口**
+### 4.2.2 开发接口
 
 我们在`UserController`中定义分页查询用户的接口：
 
@@ -1993,7 +1967,7 @@ public PageDTO<UserVO> queryUsersPage(PageQuery query) {
 
 ![img](img/1778249940480-60.png)
 
-### **4.2.3.改造PageQuery实体**
+### 4.2.3 改造PageQuery实体
 
 在刚才的代码中，从`PageQuery`到`MybatisPlus`的`Page`之间转换的过程还是比较麻烦的。
 
@@ -2050,7 +2024,7 @@ public class PageQuery {
 Page<User> page = query.toMpPageDefaultSortByCreateTimeDesc();
 ```
 
-### **4.2.4.****改造PageDTO实体**
+### 4.2.4 改造PageDTO实体
 
 在查询出分页结果后，数据的非空校验，数据的vo转换都是模板代码，编写起来很麻烦。
 
@@ -2172,6 +2146,6 @@ public PageDTO<UserVO> queryUserByPage(PageQuery query) {
 
 ![img](img/1778249940480-61.png)
 
-# **5.作业**
+# 5.作业
 
 尝试改造项目一中的`Service`层和`Mapper`层实现，用`MybatisPlus`代替单表的CRUD

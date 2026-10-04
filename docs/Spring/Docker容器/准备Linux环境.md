@@ -2,15 +2,13 @@
 order: 11
 ---
 
-**号外号外！现在点击****[黑马逆袭之路！！！](https://b11et3un53m.feishu.cn/wiki/MnIqwghIsitrrVkeasjcmWA5nhB)****，添加黑马老师即可领取多套试学课程。还可以预约1V1职业规划咨询帮你找准定位、不再盲目。赶快行动起来吧！**
-
 # 1.准备Linux环境
 
 首先，我们要准备一个Linux的系统，成本最低的方式就是在本地安装一台虚拟机。为了统一学习环境，不管是使用MacOS还是Windows系统的同学，都建议安装一台虚拟机。
 
 windows采用VMware，Mac则采用Fusion
 
-## 1.1.安装VMware
+## 1.1 安装VMware
 
 VMware是业界最好用的虚拟机软件之一。
 
@@ -26,7 +24,7 @@ https://www.vmware.com/cn/products/fusion.html
 
 如果自己电脑上已经有了低版本的VMware，则需要先卸载，再重新安装。卸载过程比较麻烦。
 
-### 1.1.1.卸载旧版VMware（可选）
+### 1.1.1 卸载旧版VMware（可选）
 
 首先，在控制面板找到程序和功能选项，找到VMware，进行卸载操作：
 
@@ -70,7 +68,7 @@ https://www.vmware.com/cn/products/fusion.html
 
 ![img](img/1778250034232-66.png)
 
-### 1.1.2.安装VMware
+### 1.1.2 安装VMware
 
 安装步骤略。。
 
@@ -78,7 +76,7 @@ https://www.vmware.com/cn/products/fusion.html
 
 ![img](img/1778250034232-67.png)
 
-### 1.1.3.常见错误
+### 1.1.3 常见错误
 
 如果VMware虚拟机运行报错，例如：
 
@@ -92,7 +90,7 @@ windows10系统可以参考: https://blog.csdn.net/biu_code/article/details/1075
 
 ![img](img/1778250034232-69.png)
 
-## 1.2.创建虚拟机
+## 1.2 创建虚拟机
 
 Centos7是比较常用的一个Linux发行版本，在国内的使用比例还是比较高的。
 
@@ -136,7 +134,7 @@ Centos7是比较常用的一个Linux发行版本，在国内的使用比例还�
 
 ![img](img/1778250034232-79.png)
 
-## 1.3.安装Centos7
+## 1.3 安装Centos7
 
 接下来，我们启动刚刚创建的虚拟机，开始安装Centos7系统：
 
@@ -237,7 +235,7 @@ ping www.baidu.com
 
 默认ping命令会持续执行，按下`CTRL `+ `C`后命令即可停止。
 
-## 1.4.设置虚拟机快照
+## 1.4 设置虚拟机快照
 
 在虚拟机安装完成后，最好立刻设置一个快照，这样一旦将来虚拟机出现问题，可以快速恢复。
 
@@ -267,7 +265,7 @@ ping www.baidu.com
 - Finshell：基础功能免费，高级功能收费，基于Java，内存占用较高（在1个G左右）。不推荐
 - MobarXterm：基础功能免费、高级功能收费。开源、功能强大、内存占用低（只有10m左右），但是界面不太漂亮。推荐使用
 
-## 2.1.安装MobarXterm
+## 2.1 安装MobarXterm
 
 这里我们会选择内存占用较低的MobarXterm作为SSH客户端，其官网地址：
 
@@ -307,13 +305,13 @@ https://mobaxterm.mobatek.net/
 
 ![img](img/1778250034233-112.png)
 
-## 2.2.配置默认编辑器
+## 2.2 配置默认编辑器
 
 首先建议设置一下默认编辑器，这样我们通过MobarXterm的FTP工具打开文件时会以指定的编辑器打开，方便修改。我这里配置的是vscode：
 
 ![img](img/1778250034233-113.png)
 
-## 2.3.配置右键粘贴
+## 2.3 配置右键粘贴
 
 复制粘贴是很常用的配置，MobarXterm默认左键选中即**复制**，但是需要配置右键点击为**粘贴：**
 
@@ -321,7 +319,7 @@ https://mobaxterm.mobatek.net/
 
 这样，复制和粘贴可以全部通过鼠标操作，无需按键。
 
-## 2.4.SSH配置
+## 2.4 SSH配置
 
 接下来还有几个ssh配置：
 
@@ -333,7 +331,7 @@ https://mobaxterm.mobatek.net/
 - ssh保持连接
 - 取消连接成功后的欢迎banner
 
-## 2.5.关闭X-Server服务
+## 2.5 关闭X-Server服务
 
 大多数情况下，我们没有x-server的需求，因此可以选择不要自启动：
 

@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useData } from 'vitepress'
 import SectionNav from './SectionNav.vue'
+import PasswordGuard from './PasswordGuard.vue'
 
 const { page } = useData()
 
@@ -9,29 +10,57 @@ const { page } = useData()
 const entries = computed(() => page.value.yearEntries ?? [])
 const yearTitle = computed(() => page.value.yearTitle ?? '')
 
-// 当前选中条目（key）
+// 日记区会话钥匙（与全站门隔离）
+const DIARY_SCOPE = 'miracle-auth-diary'
+
+// 当前选中条目（key）—— A-2 方案：进入年份页不自动选中第一篇，右侧为空
 const currentKey = ref('')
+// 密码门是否弹出（点击某一篇时才触发）
+const showDoor = ref(false)
 
-// 初始选中第一篇（或按 hash 直达）
-onMounted(() => {
-  syncFromHash()
-})
-
-function syncFromHash() {
-  const h = window.location.hash.replace(/^#/, '')
-  if (h && entries.value.some((e) => e.key === h)) {
-    currentKey.value = h
-  } else if (entries.value.length) {
-    currentKey.value = entries.value[0].key
+function sessionUnlocked(): boolean {
+  try {
+    return sessionStorage.getItem(DIARY_SCOPE)?.length > 0
+  } catch {
+    return false
   }
 }
 
+// 点击左侧某一篇：未解锁 → 弹密码门；已解锁 → 直接显示
 function selectEntry(e: { key: string }) {
-  currentKey.value = e.key
-  history.replaceState(null, '', '#' + e.key)
+  if (sessionUnlocked()) {
+    currentKey.value = e.key
+    history.replaceState(null, '', '#' + e.key)
+  } else {
+    // 记住用户想看的这篇，解锁后自动打开
+    pendingKey.value = e.key
+    showDoor.value = true
+  }
 }
 
-// 当前内容
+// 解锁成功后：关闭密码门，打开之前想看的这篇
+function onUnlocked() {
+  showDoor.value = false
+  if (pendingKey.value && entries.value.some((e) => e.key === pendingKey.value)) {
+    currentKey.value = pendingKey.value
+    history.replaceState(null, '', '#' + pendingKey.value)
+    pendingKey.value = ''
+  }
+}
+
+// 直链带 hash（如 /planning/日记/2025#反思日记1-3）：未解锁则弹门，解锁后直达该篇
+onMounted(() => {
+  const h = window.location.hash.replace(/^#/, '')
+  if (h && entries.value.some((e) => e.key === h)) {
+    pendingKey.value = h
+    if (!sessionUnlocked()) showDoor.value = true
+    else {
+      currentKey.value = h
+    }
+  }
+})
+
+const pendingKey = ref('')
 const currentHtml = computed(() => {
   const hit = entries.value.find((e) => e.key === currentKey.value)
   return hit ? hit.html : ''
@@ -68,10 +97,23 @@ function goTab(tab: string) {
         </aside>
 
         <main class="year-content">
-          <div class="vp-doc" v-html="currentHtml"></div>
+          <!-- 未选中任何一篇（A-2：先只显示列表，点击某篇才解锁显示内容） -->
+          <div v-if="!currentKey" class="year-empty">
+            <p>👈 点击左侧日记标题查看内容</p>
+          </div>
+          <div v-else class="vp-doc" v-html="currentHtml"></div>
         </main>
       </div>
     </div>
+
+    <!-- 点击某篇日记时弹出密码门（会话级，关标签页再进需重新输密码） -->
+    <PasswordGuard
+      v-if="showDoor"
+      :scope-key="DIARY_SCOPE"
+      controlled
+      :show="showDoor"
+      @success="onUnlocked"
+    />
   </div>
 </template>
 
@@ -157,5 +199,16 @@ function goTab(tab: string) {
   background: rgba(34, 211, 238, 0.12);
   color: var(--vp-c-brand-1);
   box-shadow: inset 3px 0 0 var(--vp-c-brand-1);
+}
+
+.year-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 280px;
+  border: 1px dashed var(--vp-c-divider);
+  border-radius: 12px;
+  color: var(--vp-c-text-3);
+  font-size: 15px;
 }
 </style>

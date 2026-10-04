@@ -1,13 +1,26 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 
 // ===== 密码门配置（前置访问门槛，防普通访客）=====
 // ⚠️ 纯前端防护：高级用户可阅读 JS 源码绕过，切勿存放真正机密内容
-const TTL_MS = 7 * 24 * 60 * 60 * 1000 // 会话有效期：7 天
+// 会话级：sessionStorage 按标签页隔离，关闭标签页/浏览器后再次进入需重新输密码
 const ITERATIONS = 1000 // SHA-256 迭代次数（明文密码不落源码，多加密几次）
-// 密码「lihan20020104」迭代 1000 次 SHA-256 得到的哈希（不存明文）
+// 密码迭代 1000 次 SHA-256 得到的哈希（不存明文）
 const STORED_HASH = '82fa6d846161044dca64dbbf9e55abe49ea97dedcddecd2ec8cd765d3affb976'
-const STORAGE_KEY = 'miracle-auth'
+
+const props = withDefaults(
+  defineProps<{
+    // 会话钥匙作用域：不同受保护区域用不同 key，互不影响
+    scopeKey?: string
+    // 受控模式：由外部通过 show 控制是否显示密码门（用于"点击日记才弹"）
+    // 默认 false = 自动模式：挂载时若未解锁则自动显示门（旧的全站门行为）
+    controlled?: boolean
+    show?: boolean
+  }>(),
+  { scopeKey: 'miracle-auth', controlled: false }
+)
+
+const emit = defineEmits<{ success: [] }>()
 
 const locked = ref(true)
 const password = ref('')
@@ -30,18 +43,12 @@ async function check(input: string): Promise<boolean> {
   return h === STORED_HASH
 }
 
-// sessionStorage 中存储 { authed, at }，at 为登录时间戳，超 7 天失效
+// 会话级校验：只存 { authed: true }，关标签页 sessionStorage 自动清空
 function sessionValid(): boolean {
   try {
-    const raw = sessionStorage.getItem(STORAGE_KEY)
+    const raw = sessionStorage.getItem(props.scopeKey)
     if (!raw) return false
-    const data = JSON.parse(raw)
-    return (
-      data &&
-      data.authed === true &&
-      typeof data.at === 'number' &&
-      Date.now() - data.at < TTL_MS
-    )
+    return JSON.parse(raw)?.authed === true
   } catch {
     return false
   }
@@ -51,6 +58,11 @@ onMounted(() => {
   locked.value = !sessionValid()
 })
 
+// 门是否可见：受控模式 = 外部 show 且未解锁；自动模式 = 未解锁
+const doorVisible = computed(() =>
+  props.controlled ? props.show === true && !locked.value : !locked.value
+)
+
 async function submit() {
   if (!password.value || checking.value) return
   checking.value = true
@@ -58,8 +70,9 @@ async function submit() {
   const ok = await check(password.value)
   checking.value = false
   if (ok) {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ authed: true, at: Date.now() }))
+    sessionStorage.setItem(props.scopeKey, JSON.stringify({ authed: true }))
     locked.value = false
+    emit('success')
   } else {
     error.value = '密码错误，请重试'
     password.value = ''
@@ -68,8 +81,7 @@ async function submit() {
 </script>
 
 <template>
-  <slot v-if="!locked" />
-  <div v-else class="guard">
+  <div v-if="doorVisible" class="guard">
     <form class="guard-box" @submit.prevent="submit">
       <div class="guard-title">🔒 请输入访问密码</div>
       <input
@@ -86,6 +98,7 @@ async function submit() {
       <p v-if="error" class="guard-error">{{ error }}</p>
     </form>
   </div>
+  <slot v-else />
 </template>
 
 <style scoped>

@@ -60,7 +60,7 @@ onMounted(() => {
 
 // 门是否可见：受控模式 = 外部 show 且未解锁；自动模式 = 未解锁
 const doorVisible = computed(() =>
-  props.controlled ? props.show === true && !locked.value : !locked.value
+  props.controlled ? props.show === true && locked.value : locked.value
 )
 
 async function submit() {

@@ -110,3 +110,30 @@
 
 - 构建产物 `.vitepress/dist/` 未提交（.gitignore 忽略），线上由 GitHub Actions 重新构建。
 - 密码门（方案 A 登录保护）仍**待你决策**，需要时在第三节基础上继续。
+
+---
+
+## 八、笔记主容器阅读 + 图片路径 — 方案记录
+
+> 2026-10-24 前后完成，与「笔记子页面 → 主容器内阅读」重构相关。
+
+### 8.1 背景
+
+顶部二级导航与笔记点击不再整页跳转，改为在首页 main 容器内就地阅读（`LearningPane.vue` + `NoteView.vue` 三栏：左文件目录 / 中正文 / 右本页目录）。
+
+### 8.2 图片 404 根因（已修复，方案 A）
+
+- **现状 A（已实施）**：自建渲染（`config.mts` 的 `buildNoteContent` 用 markdown-it 渲染笔记正文）**绕过了 VitePress 的图片管线**，`<img src="img/xxx.png">` 保留相对路径，构建产物根目录下没有 `img/` → 404。
+- **修复**：`buildNoteContent` 构建期建立「docs 源图片 → `dist/assets/hash`」映射（`buildImgHashMap`），把相对 src 重写为 `/assets/hash.png`（`rewriteImgSrcs`）。dev 下退回源目录相对路径（VitePress dev server 可映射），build 下对齐 VitePress 独立页机制。同名图片内容相同、hash 唯一，无冲突。
+- **验证**：`docs:build` 通过，产物中笔记 `<img src="/assets/1778250034231-58.BzGY-B6h.png">` 正确。
+
+### 8.3 备选方案 B（更规范，未实施，留待考虑）
+
+回归 **VitePress 标准 markdown 管线**渲染笔记正文（像独立页那样），由 VitePress 自动：
+1. 扫描 `docs/` 图片 → 拷贝到 `dist/assets/` 并加 hash；
+2. 自动把 `<img src>` 重写为 `/assets/hash.png`；
+3. dev / build 行为一致。
+
+代价：需要放弃自建 `markdown-it` 渲染，笔记正文的渲染方式要大改（涉及 `buildNoteContent`、`LearningPane`、`NoteView` 的数据来源）。好处：不维护手动映射，长期更规范、更抗变动（新增图片自动处理）。
+
+> 若以后自建渲染暴露出更多与 VitePress 机制的摩擦，优先考虑切到 B。

@@ -150,6 +150,86 @@ function injectPlanningData(pageData: Record<string, unknown>) {
   }
 }
 
+// ===== 学习记录：构建期渲染全部笔记 HTML（供主容器内就地阅读，不跳页） =====
+type NoteEntry = { title: string; key: string; html: string; order: number }
+
+// 图片源路径 → assets hash 文件名映射（构建期 VitePress 把 docs 下图片打进 dist/assets）
+// 同名图片（不同目录）内容相同，assets 里只有唯一 hash，按文件名映射不冲突。
+function buildImgHashMap(): Map<string, string> {
+  const map = new Map<string, string>()
+  const assetsDir = join(docsDir, '..', '.vitepress', 'dist', 'assets')
+  let files: string[] = []
+  try {
+    files = readdirSync(assetsDir)
+  } catch {
+    return map // dist 尚不存在（首次构建或 dev），返回空
+  }
+  for (const f of files) {
+    const m = f.match(/^(.+)\.([A-Za-z0-9_-]{4,})\.(png|jpe?g|gif|svg|webp)$/)
+    if (m) map.set(`${m[1]}.${m[3]}`, f)
+  }
+  return map
+}
+
+// 把渲染后的笔记 HTML 里的相对图片路径重写为 /assets/hash（对齐 VitePress 独立页机制）
+// 统一 build 模式：本地调试也用 docs:build + docs:preview，无 dev 分支
+function rewriteImgSrcs(html: string, noteRelDir: string, imgMap: Map<string, string>): string {
+  return html.replace(
+    /(<img[^>]*\bsrc=)(["'])([^"']+)(\2)/g,
+    (all, pre: string, q: string, src: string) => {
+      if (!/^(?:\.{0,2}\/|(?![a-z]+:|\/)).*\.(png|jpe?g|gif|svg|webp)$/i.test(src)) return all
+      // 相对路径 → 相对笔记所在目录的源文件路径
+      const srcPath = noteRelDir + src.replace(/^\.\//, '')
+      const name = srcPath.split('/').pop()!
+      const hashed = imgMap.get(name)
+      if (!hashed) return all // 找不到 hash，保留原样
+      return `${pre}${q}/assets/${hashed}${q}`
+    }
+  )
+}
+
+function buildNoteContent(): NoteEntry[] {
+  const EXCLUDED = new Set(['index.md', 'notes.md', 'planning.md'])
+  const out: NoteEntry[] = []
+  const imgMap = buildImgHashMap()
+  for (const file of walk(docsDir)) {
+    const rel = relative(docsDir, file).replace(/\\/g, '/')
+    if (EXCLUDED.has(rel)) continue
+    if (rel.startsWith('planning/')) continue
+    const seg = rel.split('/')
+    if (seg[0] === 'category') continue
+    const raw = readFileSync(file, 'utf-8')
+    let order = Number.MAX_SAFE_INTEGER
+    const fm = raw.match(/^---\s*\n([\s\S]*?)\n---/)
+    if (fm) {
+      const m = fm[1].match(/order\s*:\s*(\d+)/)
+      if (m) order = parseInt(m[1], 10)
+    }
+    const body = raw.replace(/^---\s*\n[\s\S]*?\n---\s*\n?/, '')
+    const key = rel.replace(/\.md$/, '')
+    // 笔记所在目录（相对 docs 根），用于解析图片相对路径
+    const noteDir = key.includes('/') ? key.slice(0, key.lastIndexOf('/')) + '/' : ''
+    const html = rewriteImgSrcs(md.render(body), noteDir, imgMap)
+    out.push({
+      title: seg[seg.length - 1].replace(/\.md$/, ''),
+      key,
+      html,
+      order
+    })
+  }
+  out.sort((a, b) => a.order - b.order || a.title.localeCompare(b.title, 'zh-CN'))
+  return out
+}
+
+// 首页注入：年份列表 + 全部笔记 HTML（构建期一次渲染，运行时零解析）
+function injectIndexData(pageData: Record<string, unknown>) {
+  const file = pageData.filePath ?? ''
+  if (file.endsWith('index.md')) {
+    pageData.planningYears = planningYears
+    pageData.noteContent = buildNoteContent()
+  }
+}
+
 export default defineConfig({
   title: '奇迹大师的学习笔记',
   description: '我的学习笔记站',
@@ -163,8 +243,9 @@ export default defineConfig({
       '<html lang="zh-CN" dir="ltr" class="dark">'
     )
   },
-  // 首页注入年份列表；年份壳页注入该年日记
+  // 首页注入年份列表；年份壳页注入该年日记；首页另注入全部笔记 HTML
   transformPageData(pageData) {
+    injectIndexData(pageData)
     injectPlanningData(pageData)
   },
   markdown: {
@@ -175,7 +256,9 @@ export default defineConfig({
     nav: [
       { text: '首页', link: '/' }
     ],
-    sidebar,
+    // 全站禁用侧边栏：分类目录统一放在内容区（NoteList 卡片）。
+    // 此前全局 sidebar 导致笔记/规划页渲染左侧栏（fixed 覆盖到导航区，盖住二级导航分隔线）。
+    sidebar: false,
     outline: {
       label: '本页目录',
       level: [2, 3]

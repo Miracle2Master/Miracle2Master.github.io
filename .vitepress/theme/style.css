@@ -1,3 +1,9 @@
+/* ===== 全站垂直滚动条常驻：让首页/笔记/规划三页视口宽度一致，
+   避免笔记页因出现垂直滚动条(占15px)挤压导航宽度、导致导航"右移"差异 ===== */
+html {
+  overflow-y: scroll;
+}
+
 /* ===== 品牌色：极客青（默认深色优先，浅色同色系） ===== */
 :root {
   --vp-c-brand-1: #22d3ee;            /* 主青：霓虹青 */
@@ -6,16 +12,16 @@
   --vp-c-brand-soft: rgba(34, 211, 238, 0.14);  /* 青色柔光底色 */
 
   /* 极客冷灰文字（浅色模式同色系，暗色下依然清晰） */
-  --vp-c-text-1: #0b1220;
-  --vp-c-text-2: #3b4a63;
+  --vp-c-text-1: #e2e8f0;
+  --vp-c-text-2: #94a3b8;
   --vp-c-text-3: #64748b;
 
-  --vp-c-bg: #ffffff;
-  --vp-c-bg-alt: #f6f7f9;
-  --vp-c-bg-soft: #eef1f6;
-  --vp-c-bg-elv: #ffffff;
+  --vp-c-bg: #0A0C10;
+  --vp-c-bg-alt: #0e1526;
+  --vp-c-bg-soft: #111a2e;
+  --vp-c-bg-elv: #0d1526;
 
-  --vp-c-divider: #d8dee8;
+  --vp-c-divider: #1e293b;
 
   /* 默认浅色也能有青色边框/背景，供组件 hover 使用 */
   --vp-c-border-glow: rgba(34, 211, 238, 0.35);
@@ -32,7 +38,7 @@ html.dark {
   --vp-c-text-2: #94a3b8;
   --vp-c-text-3: #64748b;
 
-  --vp-c-bg: #0b1220;
+  --vp-c-bg: #0A0C10;
   --vp-c-bg-alt: #0e1526;
   --vp-c-bg-soft: #111a2e;
   --vp-c-bg-elv: #0d1526;
@@ -52,45 +58,7 @@ html.dark {
   position: relative;
 }
 
-/* 背景图（深色优先：压暗提冷，极客底） */
-.VPHome::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background-image: url('/background.jpg');
-  background-size: cover;
-  background-position: center;
-  filter: blur(3px) saturate(0.5) brightness(0.45) contrast(1.1);
-  z-index: -2;
-}
-
-/* 深色模式默认的蒙层：压暗偏冷 */
-.VPHome::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background: linear-gradient(
-    to bottom,
-    rgba(11, 18, 32, 0.72) 0%,
-    rgba(11, 18, 32, 0.62) 40%,
-    rgba(11, 18, 32, 0.78) 100%
-  );
-  z-index: -1;
-}
-
-/* 浅色模式：恢复之前提亮低饱和的处理 */
-html:not(.dark) .VPHome::before {
-  filter: blur(3px) saturate(0.55) brightness(1.1);
-}
-
-html:not(.dark) .VPHome::after {
-  background: linear-gradient(
-    to bottom,
-    rgba(255, 255, 255, 0.5) 0%,
-    rgba(255, 255, 255, 0.68) 35%,
-    rgba(255, 255, 255, 0.85) 100%
-  );
-}
+/* 背景统一纯色 #0A0C10（已去除 background.jpg 背景图与蒙层） */
 
 /* ===== hero：深色默认下用青色发光文字，浅色用默认深色 ===== */
 .VPHero .name,
@@ -124,31 +92,37 @@ html.dark .VPHero .tagline {
   }
 }
 
-/* ===== hero 按钮：青色渐变 + 发光 ===== */
+/* ===== hero 按钮：方形 + 一点点圆角，深蓝 #2563EB + 发光 ===== */
 .VPHero .VPButton.brand {
-  border: 1px solid rgba(34, 211, 238, 0.6);
-  background: linear-gradient(135deg, #0e7490, #22d3ee);
-  color: #04121a;
+  border: 1px solid #2563eb;
+  background: #2563eb;
+  color: #fff;
   font-weight: 600;
-  box-shadow: 0 0 18px rgba(34, 211, 238, 0.35);
+  border-radius: 4px;
+  box-shadow: 0 0 18px rgba(37, 99, 235, 0.35);
   transition: all 0.2s ease;
 }
 
 .VPHero .VPButton.brand:hover {
-  box-shadow: 0 0 26px rgba(34, 211, 238, 0.6);
-  transform: translateY(-1px);
+  border-color: #fff;
+  background: #1d4ed8;
+  box-shadow: none;
+  transform: translateY(-2px);
 }
 
 .VPHero .VPButton.alt {
-  border: 1px solid rgba(34, 211, 238, 0.45);
-  color: var(--vp-c-brand-1);
-  background: rgba(34, 211, 238, 0.06);
+  border: 1px solid #151D2E;
+  color: #fff;
+  background: #151D2E;
+  border-radius: 4px;
   transition: all 0.2s ease;
 }
 
 .VPHero .VPButton.alt:hover {
-  background: rgba(34, 211, 238, 0.12);
-  box-shadow: 0 0 14px rgba(34, 211, 238, 0.3);
+  border-color: #fff;
+  background: #0e1526;
+  box-shadow: none;
+  transform: translateY(-2px);
 }
 
 /* ===== 正文：代码块深色底、引用青色竖线 ===== */
@@ -176,4 +150,278 @@ html.dark .vp-doc div[class*='language-'] {
 /* ===== 链接 hover：青色 ===== */
 .vp-doc a:hover {
   color: var(--vp-c-brand-2);
+}
+
+/* ===== 搜索框：整页水平正中 + 加长（锚定视口，滚动不漂移） ===== */
+@media (min-width: 768px) {
+  .VPNavBarSearch {
+    position: fixed;
+    left: 50%;
+    top: calc(var(--vp-nav-height) / 2);
+    transform: translate(-50%, -50%);
+    padding-left: 0;
+    width: min(560px, 45vw);
+  }
+
+  /* 宽度逐层传导：#local-search → 按钮，否则按钮只按内容宽 */
+  .VPNavBarSearch #local-search,
+  .VPNavBarSearch .DocSearch-Button {
+    width: 100%;
+    flex: 1;
+  }
+}
+
+/* ===== 导航栏标题文字：向左微调 ===== */
+.VPNavBarTitle .title > span {
+  margin-left: -8px;
+}
+
+/* ===== 导航栏：始终显示背景（默认首页顶部时是透明的，滚动才有） ===== */
+.VPNavBar,
+.VPNavBar .content-body {
+  background-color: var(--vp-nav-bg-color) !important;
+}
+
+/* 统一普通页与首页的顶栏：VitePress 默认给非首页顶栏（VPNavBar top，无 home 类）
+   加一条 border-bottom（颜色随 var(--vp-c-divider) 深浅变化），导致笔记页线色与首页不一致。
+   去掉它，一级/二级导航之间的分隔线统一由 .SecNav::before（#1e293b）绘制。 */
+.VPNavBar {
+  border-bottom: none !important;
+}
+
+/* 去掉 VitePress 顶栏自带的分隔条（.divider / .divider-line）：
+   首页顶栏(home top)不渲染它，普通页顶栏会渲染（深色=黑、全宽），
+   导致笔记/规划页二级导航上方出现与首页不同的黑线。
+   统一后三页的线只由 .SecNav::before（灰、限宽居中）绘制。 */
+.VPNavBar .divider,
+.VPNavBar .divider-line {
+  display: none;
+}
+
+/* 标题栏与二级导航用同一背景色，中间以分隔线划分 */
+.VPNavBar,
+.VPNavBar .content-body,
+.SecNav {
+  background-color: var(--vp-nav-bg-color) !important;
+}
+
+/* ===== 二级导航条（标题栏下方，固定吸顶） ===== */
+/* 元素自身不带边框：两条分隔线完全由 ::before（上，限宽居中）与 ::after（下，铺满）绘制，
+   颜色固定 #1e293b，不依赖 var(--vp-c-divider)（深浅模式值不同，会导致各页线颜色不一致） */
+.SecNav {
+  position: fixed;
+  top: var(--vp-nav-height);
+  left: 0;
+  right: 0;
+  z-index: calc(var(--vp-z-index-nav) - 1);
+  height: 40px;
+  background-color: var(--vp-nav-bg-color) !important;
+  border-top: none;
+  border-bottom: none;
+  display: flex;
+  align-items: center;
+}
+
+/* 桌面端：二级导航提升到侧边栏(z-index:60)之上，
+   保证导航区（含两条分隔线）在所有页面恒定完整，不被侧边栏背景盖住 */
+@media (min-width: 960px) {
+  .SecNav {
+    z-index: calc(var(--vp-z-index-sidebar) + 1);
+  }
+}
+
+/* 标题栏与二级导航之间的分隔线：限宽居中，固定颜色 #1e293b，所有页面一致 */
+.SecNav::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  max-width: calc(var(--vp-layout-max-width) - 64px);
+  border-top: 1px solid #1e293b;
+  z-index: calc(var(--vp-z-index-sidebar) + 1);  /* 61：压过侧边栏(60)，笔记页不被侧边栏背景盖住 */
+}
+
+/* 二级导航与正文之间的分隔线：铺满整个屏幕宽度，固定颜色 #1e293b，所有页面一致 */
+.SecNav::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  border-top: 1px solid #1e293b;
+  z-index: calc(var(--vp-z-index-sidebar) + 1);  /* 61：同上，所有页面一致 */
+}
+
+.sec-nav-inner {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 24px;
+  width: 100%;
+  max-width: calc(var(--vp-layout-max-width) - 64px);
+  margin: 0 auto;
+}
+
+.sec-nav-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--vp-c-text-2);
+  border-bottom: 2px solid transparent;
+  transition: color 0.25s, border-bottom-color 0.25s;
+}
+
+/* 标题文字向右移动 */
+.VPNavBarTitle .title > span {
+  margin-left: 32px;
+}
+
+.sec-nav-item:hover {
+  color: var(--vp-c-text-1);
+  border-bottom-color: rgb(37, 99, 235);
+}
+
+.sec-nav-item.active {
+  color: #2563eb;
+  font-weight: 600;
+  border-bottom-color: rgb(37, 99, 235);
+}
+
+/* 有侧边栏页面：二级导航也按侧边栏宽度留出左侧空间 */
+@media (min-width: 960px) {
+  .VPNavBar.has-sidebar ~ .SecNav .sec-nav-inner,
+  .VPNavBar ~ .SecNav .sec-nav-inner {
+    padding-left: var(--vp-sidebar-width);
+  }
+}
+
+/* 二级导航固定后，正文顶部要多留出它的高度 */
+@media (min-width: 960px) {
+  .VPContent {
+    padding-top: calc(var(--vp-nav-height) + 40px) !important;
+  }
+  .VPContent.has-sidebar {
+    margin-top: 0 !important;
+  }
+}
+
+/* 平板/手机：标题栏不显示（VitePress 默认隐藏标题与搜索），二级导航贴顶 */
+@media (max-width: 959px) {
+  .SecNav {
+    top: 0;
+  }
+  .VPContent {
+    padding-top: 40px !important;
+  }
+}
+
+/* VPLocalNav（滚动时出现的面包屑栏）让位给二级导航 */
+@media (min-width: 960px) {
+  .VPLocalNav {
+    top: calc(var(--vp-nav-height) + 40px) !important;
+  }
+}
+
+/* ===== 首页 hero：内容区左右一分为二 ===== */
+/* 与下方内容区（1152px 居中）同宽同对齐，标题不超出内容区左侧 */
+.VPHero .container {
+  max-width: 1152px !important;
+  width: 100% !important;
+  margin: 0 auto;
+  gap: 32px;
+  align-items: stretch;
+}
+
+/* 左侧：标题（#0F182A）+ 开始阅读按钮（同色），占一半 */
+.VPHero .main {
+  width: 50% !important;
+  min-width: 0;
+  order: 1;
+}
+
+/* 标题/副标题：不超过左栏内容区、允许中文换行、字号调小 */
+.VPHero .name,
+.VPHero .text {
+  max-width: 100% !important;
+  width: 100%;
+  white-space: pre-wrap !important;
+  word-break: break-all;
+  overflow-wrap: break-word;
+  font-size: 40px;
+  line-height: 48px;
+}
+
+.VPHero .tagline {
+  max-width: 100% !important;
+  font-size: 18px;
+  line-height: 28px;
+}
+
+@media (max-width: 959px) {
+  .VPHero .name,
+  .VPHero .text {
+    font-size: 32px;
+    line-height: 40px;
+  }
+}
+
+@media (max-width: 639px) {
+  .VPHero .name,
+  .VPHero .text {
+    font-size: 26px;
+    line-height: 34px;
+  }
+}
+
+.VPHero .name {
+  color: #2563eb !important;
+  background: none !important;
+  -webkit-background-clip: initial !important;
+  background-clip: initial !important;
+  -webkit-text-fill-color: #2563eb !important;
+}
+
+/* 副标题颜色：#2563EB */
+.VPHero .text {
+  color: #2563eb !important;
+  background: none !important;
+  -webkit-background-clip: initial !important;
+  background-clip: initial !important;
+  -webkit-text-fill-color: #2563eb !important;
+}
+
+.VPHero .VPButton.brand {
+  background: #2563eb;
+  color: #fff;
+  border: 1px solid #2563eb;
+}
+
+/* 右侧：两个上下排列的矩形占位块，占另一半、约半个页面高 */
+.VPHero .image {
+  order: 2;
+  width: 50% !important;
+  flex-grow: 0 !important;
+  margin: 0 !important;
+  min-height: 50vh;
+}
+
+.hero-blocks {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  height: 100%;
+  min-height: 50vh;
+}
+
+.hero-block {
+  flex: 1;
+  border: 1px dashed #334155;
+  border-radius: 8px;
+  background: #0F182A;
 }

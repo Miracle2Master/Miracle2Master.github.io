@@ -73,11 +73,11 @@ const view = computed(() => {
   margin: 0.4em 0;
 }
 .file-list a {
-  color: var(--vp-c-brand-1);
+  color: var(--note-accent);
   text-decoration: none;
 }
 .file-list a:hover {
-  color: var(--vp-c-brand-2);
+  color: var(--note-accent-hover);
 }
 .sub-group {
   margin-top: 24px;
@@ -85,5 +85,6 @@ const view = computed(() => {
 .sub-group h2 {
   font-size: 16px;
   margin: 0 0 8px;
+  color: var(--note-accent);
 }
 </style>

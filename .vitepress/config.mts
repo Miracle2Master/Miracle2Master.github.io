@@ -1,15 +1,18 @@
-import { defineConfig } from 'vitepress'
-import MarkdownIt from 'markdown-it'
-import { readdirSync, readFileSync, statSync } from 'node:fs'
+import { defineConfig, createMarkdownRenderer } from 'vitepress'
+import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs'
+import { createHash } from 'node:crypto'
 import { join, relative, basename } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const docsDir = fileURLToPath(new URL('../docs', import.meta.url))
 
-// markdown 渲染器（构建期渲染日记 HTML，与正文页同风格）
-// vite 开发模式对 CJS 默认导出的互操作可能包一层 {default: fn}，这里兜底取到构造函数
-const MarkdownItCtor = ((MarkdownIt as unknown as { default?: typeof MarkdownIt }).default ?? MarkdownIt) as typeof MarkdownIt
-const md = new MarkdownItCtor({ html: true, linkify: true, typographer: true })
+// markdown 渲染器（构建期渲染日记/笔记 HTML，与独立正文页同风格）
+// 用 vitepress 官方渲染器：自带 shiki 语法高亮 + 代码块容器（语言标签/复制按钮），
+// 与独立页（/Spring/xxx.html）的代码块效果完全一致；仍是 MarkdownIt 实例，图片重写逻辑不变。
+// 主题固定 dark-plus（VS Code Dark+）：类型青绿 / 变量浅蓝 / 字符串橙。
+// 必须与下方 markdown.theme 保持一致，否则「独立页」与「主容器内就地阅读」会用两套配色。
+const CODE_THEME = 'dark-plus'
+const md = await createMarkdownRenderer(docsDir, { math: true, theme: CODE_THEME })
 
 function walk(dir: string): string[] {
   const out: string[] = []
@@ -155,6 +158,8 @@ type NoteEntry = { title: string; key: string; html: string; order: number }
 
 // 图片源路径 → assets hash 文件名映射（构建期 VitePress 把 docs 下图片打进 dist/assets）
 // 同名图片（不同目录）内容相同，assets 里只有唯一 hash，按文件名映射不冲突。
+// 兼容策略：dist 尚不存在时（首次构建 / dev）返回空 Map，此时 render 时源文件在 docs 下直接存在，
+// 走「文件名匹配 + 内容 MD5 兜底」两条路，都能把相对路径重写到 assets hash。
 function buildImgHashMap(): Map<string, string> {
   const map = new Map<string, string>()
   const assetsDir = join(docsDir, '..', '.vitepress', 'dist', 'assets')
@@ -168,22 +173,56 @@ function buildImgHashMap(): Map<string, string> {
     const m = f.match(/^(.+)\.([A-Za-z0-9_-]{4,})\.(png|jpe?g|gif|svg|webp)$/)
     if (m) map.set(`${m[1]}.${m[3]}`, f)
   }
+  // 内容兜底映射：源文件内容 MD5 → assets hash 文件名。
+  // Vite 构建时对内容相同的图片只保留一个 hash（同名去重），文件名映射可能落空，
+  // 这里按内容反查，保证重写不丢。
+  const contentMap = new Map<string, string>()
+  for (const f of files) {
+    const p = join(assetsDir, f)
+    if (!/\.(png|jpe?g|gif|svg|webp)$/i.test(f) || !existsSync(p)) continue
+    const h = createHash('md5').update(readFileSync(p)).digest('hex')
+    if (!contentMap.has(h)) contentMap.set(h, f)
+  }
+  map.set('__content__', '') // 占位（见 rewriteImgSrcs 内容兜底逻辑）
+  map['__contentMap'] = contentMap
   return map
 }
 
 // 把渲染后的笔记 HTML 里的相对图片路径重写为 /assets/hash（对齐 VitePress 独立页机制）
 // 统一 build 模式：本地调试也用 docs:build + docs:preview，无 dev 分支
 function rewriteImgSrcs(html: string, noteRelDir: string, imgMap: Map<string, string>): string {
+  const contentMap = (imgMap as unknown as Record<string, Map<string, string>>)['__contentMap'] as Map<string, string> | undefined
   return html.replace(
     /(<img[^>]*\bsrc=)(["'])([^"']+)(\2)/g,
     (all, pre: string, q: string, src: string) => {
       if (!/^(?:\.{0,2}\/|(?![a-z]+:|\/)).*\.(png|jpe?g|gif|svg|webp)$/i.test(src)) return all
-      // 相对路径 → 相对笔记所在目录的源文件路径
-      const srcPath = noteRelDir + src.replace(/^\.\//, '')
+      // 反斜杠路径归一：Windows 导出的 md 里是 assets\xxx.png 或 .\assets\xxx.png，
+      // markdown-it 渲染后变成 assets%5Cxxx.png 或 .%5Cassets%5Cxxx.png。
+      // 这里把 %5C / \ 统一还原为 /，再取最后一段文件名参与匹配。
+      const normSrc = src.replace(/%5C/gi, '/').replace(/\\/g, '/')
+      let srcPath = noteRelDir + normSrc.replace(/^\.\//, '')
       const name = srcPath.split('/').pop()!
       const hashed = imgMap.get(name)
-      if (!hashed) return all // 找不到 hash，保留原样
-      return `${pre}${q}/assets/${hashed}${q}`
+      if (hashed) return `${pre}${q}/assets/${hashed}${q}`
+      // 文件名映射落空（内容同名去重）→ 按源文件内容 MD5 反查
+      if (contentMap) {
+        const srcFull = join(docsDir, srcPath)
+        if (existsSync(srcFull)) {
+          const h = createHash('md5').update(readFileSync(srcFull)).digest('hex')
+          const target = contentMap.get(h)
+          if (target) return `${pre}${q}/assets/${target}${q}`
+        }
+      }
+      // 最后兜底：源文件存在但从未被 Vite 打包（如独立页 base64 内联、未被任何资源引用）
+      // → 直接内联 base64，避免浏览器请求相对路径 404
+      const srcFull2 = join(docsDir, srcPath)
+      if (existsSync(srcFull2) && !/\.(gif|svg)$/i.test(srcPath)) {
+        const ext = srcPath.split('.').pop()!.toLowerCase()
+        const mime = ext === 'jpg' ? 'jpeg' : ext
+        const b64 = readFileSync(srcFull2).toString('base64')
+        return `${pre}${q}data:image/${mime};base64,${b64}${q}`
+      }
+      return all // 找不到 hash，保留原样
     }
   )
 }
@@ -236,6 +275,11 @@ export default defineConfig({
   lang: 'zh-CN',
   base: '/',
   srcDir: 'docs',
+  // 强制深色：全站不提供浅色模式。
+  // 该值会三件事同时生效：构建期注入 document.documentElement.classList.add('dark')、
+  // 客户端 isDark 恒为 true、右上角明暗切换组件（VPNavBarAppearance）不再渲染。
+  // 站点配色只维护深色一套，避免两套色值分叉。
+  appearance: 'force-dark',
   // 构建时给所有页面 <html> 加默认 dark（极客风首屏即深色）
   transformHtml(code) {
     return code.replace(
@@ -249,7 +293,9 @@ export default defineConfig({
     injectPlanningData(pageData)
   },
   markdown: {
-    math: true
+    math: true,
+    // 与上方 createMarkdownRenderer 的 theme 保持一致（独立页代码块配色）
+    theme: CODE_THEME
   },
   ignoreDeadLinks: true,
   themeConfig: {

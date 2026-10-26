@@ -13,7 +13,10 @@ const active = sectionTab
 
 // 从 URL hash 恢复分区（锚点链接直链 /#learning、/#planning、#note-*、#cat-*，以及刷新后还原）
 function syncFromHash() {
-  const h = window.location.hash
+  // location.hash 返回百分号编码串（中文被编码），前缀判断前先解码，
+  // 否则 #note-... 里的中文目录/文件名（如 Docker%E5%AE%B9%E5%99%A8）不影响前缀，
+  // 但为统一处理，#note- 之后的编码串也一并还原。
+  const h = decodeURIComponent(window.location.hash)
   // #note-xxx / #cat-xxx 是「学习记录」Tab 内的子视图（当前笔记/分类）
   if (h.startsWith('#learning') || h.startsWith('#note-') || h.startsWith('#cat-')) {
     sectionTab.value = 'learning'
@@ -84,6 +87,7 @@ const visiblePane = computed(() => {
   }
 }
 
+/* 内容容器：水平居中 + 限宽（学习记录 Tab 内放宽到导航栏宽度） */
 .container {
   margin: auto;
   width: 100%;
@@ -96,10 +100,23 @@ const visiblePane = computed(() => {
   max-width: calc(var(--vp-layout-max-width) - 64px);
 }
 
-/* ===== 内容区：无外框无背景，直接融入页面 ===== */
-.tab-shell {
-  padding: 24px 0;
+/* 学习记录 Tab 内（笔记列表/三栏阅读）：主容器顶部与二级导航下沿保持 40px 间距 */
+.home-content.is-learning {
+  margin-top: calc(var(--vp-nav-height) + 40px);
+  padding-top: 0;
 }
+
+/* 学习记录 Tab 内：tab-shell 顶部与主容器(margin)间距一致，
+   让 sticky 目录吸顶位置 = 初始位置，进入/滚动时目录始终固定在与导航栏隔 40px 处 */
+.home-content.is-learning .tab-shell {
+  padding-top: 40px;
+}
+
+/* 学习记录 Tab 不锁视口高度：正文按正常文档流铺开，页面高度由正文决定
+   → 滚动的是整页（屏幕最右侧滚动条即阅读进度），中间正文随页面上移，
+   左右两侧目录在 NoteView 里 sticky 吸顶保持不动。
+   约束：从 .home-content 到 .note-view 的祖先链上不得出现 overflow:hidden /
+   transform / 固定 height 的裁剪，否则 sticky 会失效或目录被裁掉。 */
 
 .tab-pane {
   animation: fadeIn 0.2s ease;

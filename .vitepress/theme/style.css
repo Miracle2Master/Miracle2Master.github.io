@@ -25,6 +25,13 @@ html {
 
   /* 默认浅色也能有青色边框/背景，供组件 hover 使用 */
   --vp-c-border-glow: rgba(34, 211, 238, 0.35);
+
+  /* ===== 笔记区统一配色（文件夹标题 / 选中项 / 悬停项 / 标签） =====
+     集中定义，避免各处重复写色值；深浅模式共用同一套。 */
+  --note-accent: #2563eb;          /* 主题蓝：文件夹标题、选中/悬停文字、标签文字 */
+  --note-accent-hover: #3b82f6;    /* 蓝色 hover 提亮 */
+  --note-active-bg: #0F1928;       /* 命中项（选中/悬停）深蓝底，也用作卡片底 */
+  --note-accent-glow: rgba(37, 99, 235, 0.28);  /* 蓝色发光 */
 }
 
 /* 深色模式：冷黑底 + 荧光青 */
@@ -126,12 +133,15 @@ html.dark .VPHero .tagline {
 }
 
 /* ===== 正文：代码块深色底、引用青色竖线 ===== */
-.vp-doc code {
-  font-family: var(--vp-font-family-mono);
-  background: var(--vp-c-brand-soft);
-  color: var(--vp-c-brand-1);
-  padding: 0.15em 0.4em;
-  border-radius: 4px;
+/* 行内代码：底 #0B0C0E（与代码块同色），文字用 dark-plus 正文色 #D4D4D4。
+   选择器刻意与 VitePress 默认规则同形并加 html 前缀提升特异性：
+   默认那条是 .vp-doc :not(pre, h1..h6) > code (0,1,2)，原先的 .vp-doc code (0,1,1)
+   特异性不足、压不住它，所以行内代码一直沿用默认底色。
+   这里只改底色与文字色，padding / 圆角 / 字体都沿用 VitePress 默认，不动观感。
+   不使用 !important（项目宪法禁止）。 */
+html .vp-doc :not(pre, h1, h2, h3, h4, h5, h6) > code {
+  background: #0B0C0E;
+  color: #D4D4D4;
 }
 
 .vp-doc .custom-block {
@@ -142,9 +152,22 @@ html.dark .VPHero .tagline {
   border-left: 4px solid var(--vp-c-brand-1);
 }
 
-/* 代码块容器：冷黑底 */
-html.dark .vp-doc div[class*='language-'] {
-  background: #0a101d;
+/* 代码块容器：背景统一 #0B0C0E（与页面背景同色系，不额外加边框/装饰区分）。
+   全站已强制深色（config 的 appearance: 'force-dark'），故不再用 html.dark 前缀，
+   规则本身不依赖 dark 类，避免任何路径下回落到 --vp-code-block-bg。 */
+html .vp-doc div[class*='language-'] {
+  background: #0B0C0E;
+}
+
+/* 代码块内的 code：底色强制透明，文字基准色跟随 dark-plus 前景 #D4D4D4。
+   - 透明：VitePress 只给 .custom-block 里的 code 设了 transparent，普通代码块的 <code>
+     会吃到上面行内代码规则的底色。上面用了 :not(pre) 已排除，这里再显式兜底一次，
+     防止上游选择器变化后代码块底色被叠成 #0B0C0E + 行内底色。
+   - 文字：VitePress 默认 --vp-code-block-color 是 --vp-c-text-2（#94a3b8 灰），
+     只影响没被 shiki 包进 span 的纯文本；改成 dark-plus 前景色，整块观感才统一。 */
+html .vp-doc div[class*='language-'] code {
+  background: transparent;
+  color: #D4D4D4;
 }
 
 /* ===== 链接 hover：青色 ===== */

@@ -60,16 +60,16 @@ const groups = computed(() => {
 }
 
 .note-group {
-  border: 1px solid rgba(34, 211, 238, 0.28);
+  border: 1px solid var(--vp-c-divider);
   border-radius: 12px;
-  background: var(--vp-c-bg-soft);
+  background: var(--note-active-bg);
   padding: 20px 24px;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .note-group:hover {
-  border-color: rgba(34, 211, 238, 0.6);
-  box-shadow: 0 0 14px rgba(34, 211, 238, 0.22);
+  border-color: var(--note-accent);
+  box-shadow: 0 0 14px var(--note-accent-glow);
 }
 
 .note-group h2 {
@@ -77,7 +77,7 @@ const groups = computed(() => {
   line-height: 24px;
   font-weight: 600;
   margin: 0 0 12px;
-  color: var(--vp-c-text-1);
+  color: var(--note-accent);
 }
 
 .note-list ul {
@@ -96,10 +96,10 @@ const groups = computed(() => {
 .note-list a {
   display: inline-block;
   padding: 4px 12px;
-  border: 1px solid rgba(34, 211, 238, 0.35);
+  border: 1px solid var(--vp-c-divider);
   border-radius: 999px;
-  background: rgba(34, 211, 238, 0.06);
-  color: var(--vp-c-brand-1);
+  background: var(--note-active-bg);
+  color: var(--note-accent);
   text-decoration: none;
   font-size: 14px;
   line-height: 22px;
@@ -107,9 +107,8 @@ const groups = computed(() => {
 }
 
 .note-list a:hover {
-  color: #04121a;
-  background: var(--vp-c-brand-1);
-  border-color: var(--vp-c-brand-1);
-  box-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
+  color: #fff;
+  background: var(--note-accent);
+  border-color: var(--note-accent);
 }
 </style>

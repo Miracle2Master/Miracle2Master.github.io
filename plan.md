@@ -137,3 +137,550 @@
 代价：需要放弃自建 `markdown-it` 渲染，笔记正文的渲染方式要大改（涉及 `buildNoteContent`、`LearningPane`、`NoteView` 的数据来源）。好处：不维护手动映射，长期更规范、更抗变动（新增图片自动处理）。
 
 > 若以后自建渲染暴露出更多与 VitePress 机制的摩擦，优先考虑切到 B。
+
+---
+
+## 九、目录重构 + 动态二级导航 — 实施计划
+
+> 日期：2026-10-25
+> 状态：**待实施**（等 9.10 的待确认项拍板后动手）
+
+### 9.1 目标与最终效果
+
+**一句话**：二级导航里**只有「首页」是写死的固定项**，笔记 / 日记 / 归档三项全部由构建期扫描 `docs/` 的一级子文件夹得出——即 `docs/` 下每个一级子文件夹 = 二级导航里的一项。导航清单不再写死，新增栏目只需建文件夹。
+
+**改造完成后，用户看到的样子**
+
+顶部二级导航（`SecNav`，标题栏下方那条）：
+
+```
+首页 │ 笔记 │ 日记 │ 归档
+```
+
+四项的来源：
+
+| 导航项 | 来源 |
+|--------|------|
+| 首页 | 代码里写死的固定项（`HOME_KEY`），**不在扫描结果里** |
+| 笔记 | 扫描到 `docs/notes/` |
+| 日记 | 扫描到 `docs/diary/` |
+| 归档 | 扫描到 `docs/archive/` |
+
+需要说清楚的是分工：**扫描决定「有哪些项、各自指向哪个目录」**；显示文字与排列顺序仍来自两张小表（`SECTION_LABELS` / `SECTION_ORDER`，见 9.4），未登记的目录直接用文件夹名。两张表各只有几行，加新分区各加一行即可，不必碰 `SecNav.vue`。
+
+四个入口的行为：
+
+| 点击 | 内容区显示什么 | URL |
+|------|----------------|-----|
+| 首页 | 站名横幅「奇迹师 笔记站」+ 关于我 | `/` |
+| 笔记 | 笔记列表：Spring / 机器学习 / 深度学习 / 周志华机器学习笔记 / 微服务 五张卡片。点卡片 → 分类列表；点标签 → 三栏阅读（左文件目录 / 中正文 / 右本页目录） | `/#notes` |
+| 日记 | 年份网格（2025 / 2026）。点年份 → 年份页（左日记列表 / 右正文，点正文弹密码门） | `/#diary` |
+| 归档 | 归档页列表（笔记目录、人生规划），点某一项**在内容区就地展开** | `/#archive` |
+
+全站**不跳页**（除直接访问独立页），四个入口都是首页内容区的就地切换，这与你选定的「保持首页 Tab 联动」一致。
+
+**开发者视角**
+
+- 新增栏目 = 在 `docs/` 下建一个文件夹、放 md → 重启构建，导航自动多一项，**不用改 `SecNav.vue`**（想要中文名和指定顺序，就在 `SECTION_LABELS` / `SECTION_ORDER` 各补一行；不补则显示文件夹名、排在表外）。
+- 该栏目**不用写任何组件**：未在 `SECTION_PANES` 注册的分区会自动落到通用兜底 pane，列出该目录下所有页面并支持就地阅读（`archive` 就是这么来的）。
+- 想让某个分区有专属体验（如笔记的三栏阅读、日记的年份网格），才需要在 `section.ts` 的 `SECTION_PANES` 里注册一次（Vue 组件无法从配置文件序列化过去，只能放在 theme 层）。
+
+**顺带修掉的既有缺陷**：`SecNav.vue:25-35` 现在的独立页高亮逻辑只判断 `/notes`、`/planning` 两个前缀。真实笔记页路径是 `/<一级目录>/<文件>.html`（如 `/Spring/AI/x.html`），两个前缀都不匹配 → **直接访问独立笔记页时二级导航一个都不亮**。本次改成「路径第一段 = 分区 key」的统一判定后，该问题自然消失，无需额外打补丁。
+
+### 9.2 已确认决策
+
+| 决策点 | 选择 |
+|--------|------|
+| 分区目录名 | `docs/notes/`（笔记）、`docs/diary/`（日记）、`docs/archive/`（归档） |
+| 孤儿页处理 | `notes.md`、`planning.md` **移入 `docs/archive/`**，导航因此多出「归档」一项 |
+| 导航点击行为 | **保持首页 Tab 联动**（就地切换，不跳页） |
+| 归档 Tab 内容 | **在首页内容区就地渲染**，不跳独立页 |
+| 导航文字来源 | 目录名 → 显示名映射表，未登记的目录直接用目录名 |
+| 冗余图片 `docs/img/` | **删除**（已二次核验无引用，见 9.2.1） |
+| `plan.md` | 追加为新章节（即本节），旧内容保留 |
+
+#### 9.2.1 `docs/img/` 删除前的二次核验结果
+
+| 核验方式 | 结果 |
+|----------|------|
+| 解析全部 894 条本地图片引用，判断解析后路径是否落在 `docs/img/` 下 | **0 条** |
+| 全项目文本搜索 `docs/img` 路径（含 `*.md` / `*.vue` / `*.ts` / `*.mts` / `*.css` / `*.html` / `*.json` / `README.md` / `vp-icons.css` / `hashmap.json`） | 仅命中 `plan.md` 自身，**无实际引用** |
+| `docs/img/` vs `docs/Spring/img/` 文件名集合 | 完全一致（115 个） |
+| 逐文件 MD5 比对 | **115 个全部一致，0 个不同** |
+| 构建产物 `.vitepress/dist/img/` | 不存在（Vite 未把它复制进产物，说明没有任何资源引用它） |
+
+结论：`docs/img/` 是 `docs/Spring/img/` 的一份完整副本（8.8 MB），且被 git 跟踪，但**没有任何页面引用它**。删除安全。
+
+> 注意：`docs/Spring/img/` 会随 `Spring/` 一起搬进 `docs/notes/Spring/img/`，这才是真正被引用的那份（701 条 `img/xxx.png` 引用都指向各自父目录下的 `img/`）。**删的只是根目录那份副本。**
+
+### 9.3 目标目录结构
+
+```
+docs/
+├── index.md                 首页（不变）
+├── notes/                   ★ 新建：全部学习笔记
+│   ├── Spring/              （整体搬入，含 Spring/img、Spring/Redis/img 等）
+│   ├── 机器学习/            （含 img/）
+│   ├── 深度学习/
+│   ├── 周志华机器学习笔记/   （含 补充/）
+│   └── 微服务/              （含 img/）
+├── diary/                   ★ 新建：原 docs/planning/ 整体搬入
+│   ├── 日记/
+│   │   ├── 2025.md          年份壳页（layout: PlanningYear）
+│   │   ├── 2026.md
+│   │   ├── 2025/  2026/     各年日记
+│   │   └── claude.md / 原则.md / plan.md / 日记评价与建议.md
+│   └── 目标与方向.md
+├── archive/                 ★ 新建：原孤儿页归处，导航「归档」
+│   ├── notes.md             原 docs/notes.md（笔记目录页）
+│   └── planning.md          原 docs/planning.md（人生规划页）
+├── category/                保持不动（分类索引页，**不是分区**，见 9.4）
+├── img/                     ★ 删除（冗余副本，已核验无引用）
+└── public/                  保持不动（VitePress 公共资源，静态直出，不是分区）
+```
+
+**关键点：整棵子目录树一起搬**，md 里的 `img/xxx.png` 相对路径因此全部保持有效，**一篇笔记的正文都不需要改**。
+
+### 9.4 分区扫描规则
+
+在 `config.mts` 新增：
+
+```ts
+// 分区目录黑名单：这些目录是站点基础设施，不是内容分区
+const NON_SECTION_DIRS = new Set(['img', 'public', 'category', 'node_modules', '.vitepress'])
+
+// 分区目录 → 导航显示文字；未登记的目录直接用目录名
+const SECTION_LABELS: Record<string, string> = {
+  notes: '笔记',
+  diary: '日记',
+  archive: '归档'
+}
+
+// 导航顺序：先按此表，表外目录按名称排在后面
+const SECTION_ORDER = ['notes', 'diary', 'archive']
+```
+
+扫描实现（`buildSections()`）：
+
+1. `readdirSync(docsDir)` 取一级条目；
+2. 过滤：必须是目录、不在黑名单、不以 `.` 或 `_` 开头；
+3. **必须至少含 1 个 `.md` 文件（递归）**——空目录或纯资源目录不成为导航项；
+4. 映射：`{ key: 目录名, text: SECTION_LABELS[目录名] ?? 目录名 }`；
+5. 排序：按 `SECTION_ORDER` 的位置，未列出的按 `localeCompare('zh-CN')` 排后面。
+
+**每个分区还要扫出「叶子页清单」**，供两类消费方使用：
+
+| 消费方 | 用途 |
+|--------|------|
+| `archive` 分区 | 「归档」Tab 在首页就地列出 `archive/` 下的页面（标题 + 摘要），点击就地渲染 |
+| 未来任何未注册 pane 的分区 | 自动退化成一个「页面链接列表」，不用写新组件也有内容 |
+
+所以扫描结果的数据结构是：
+
+```ts
+type SectionPage = {
+  title: string          // 页面标题（md 第一个 H1；无 H1 用文件名）
+  key: string            // 相对该分区目录的路径，去后缀，如 'notes'、'planning'
+  filePath: string       // 相对 docs 的路径，带后缀，如 'archive/notes.md'
+  html: string           // 构建期渲染好的正文 HTML（archive 就地渲染要用）
+}
+
+type SectionEntry = {
+  key: string
+  text: string
+  pages: SectionPage[]   // 该分区下的全部叶子页（递归）
+}
+
+// pageData.sectionNav: SectionEntry[]
+```
+
+> **为什么 `archive` 的 html 要构建期渲染**：和 `noteContent` 一样的理由——运行时没有 markdown 渲染器，`v-html` 只能吃现成 HTML。`archive` 只有 2 个页面，体积可忽略。
+>
+> `notes` / `diary` 分区也会带一份 `pages`，但它们的正文由各自的 pane（`LearningPane` / `PlanningPane`）用已有机制渲染，`pages` 里的 `html` 对它们不被使用。为避免首页序列化体积翻倍，**`pages[].html` 只对「不在 `SECTION_PANES` 里」的分区填充**，其余分区只保留 `title` / `key` / `filePath`（`html` 为空串）。这条规则写在 `buildSections()` 里，注释说明原因。
+
+结果注入到每个页面的 `pageData.sectionNav`（沿用现有 `planningYears` / `noteContent` 的注入模式）。
+
+> 备选：写进 `themeConfig` + 模块类型扩充，可避免每个页面重复序列化一份。当前数组只有 2 项，成本可忽略，先用注入。
+
+### 9.5 数据类型与数据流
+
+**新增类型**（`section.ts`）：
+
+```ts
+// 分区的叶子页面（供通用兜底 pane 使用）
+export type SectionPage = {
+  title: string      // md 第一个 H1；无 H1 用文件名
+  key: string        // 相对分区目录、去后缀，如 'notes'、'planning'
+  filePath: string   // 相对 docs、带后缀，如 'archive/notes.md'
+  html: string       // 构建期渲染好的正文；仅未注册 pane 的分区填充，其余为空串
+}
+
+// 一个分区（= docs 下一个一级子文件夹）
+export type SectionEntry = {
+  key: string        // 目录名，也是导航 key 与 URL 第一段
+  text: string       // 导航显示文字
+  pages: SectionPage[]
+}
+```
+
+**`section.ts` 现状 → 目标**
+
+| 现状 | 目标 |
+|------|------|
+| `type SectionTab = 'home' \| 'learning' \| 'planning'` | 删除该联合类型，改用 `string` |
+| `export const sectionTab = ref<SectionTab>('home')` | `export const sectionTab = ref<string>(HOME_KEY)` |
+| —（无） | `export const HOME_KEY = 'home'`：首页固定标识，**不出现在扫描结果里** |
+| —（无） | `SECTION_PANES: Record<string, Component>`：`home → HomePane`、`notes → LearningPane`、`diary → PlanningPane`、`archive → ArchivePane`（见 9.5.1） |
+| —（无） | `WIDE_SECTIONS = new Set(['notes'])`：需要宽容器的分区（三栏笔记阅读） |
+| —（无） | `SectionPagesPane`：通用兜底 pane，未注册的分区用它 |
+
+> `home` 也放进 `SECTION_PANES`，是为了让 `HomeNoteList` 的模板只剩一条渲染路径（不用为首页单开一个分支）。导航栏里首页是固定项，扫描结果不包含它。
+
+**数据流**
+
+```
+config.mts buildSections()
+   └─ transformPageData → pageData.sectionNav: SectionEntry[]
+        ├─ SecNav.vue         渲染导航项 + 高亮判定
+        └─ HomeNoteList.vue   渲染对应 pane（SECTION_PANES[key] ?? SectionPagesPane）
+```
+
+**为什么 pane 映射留在客户端**：`SECTION_PANES` 的值是 Vue 组件对象，无法从配置文件序列化过去，只能放在 theme 层。
+
+**扫描与渲染的分工**（这是整套设计的关键边界）：
+
+| 环节 | 谁负责 | 决定什么 |
+|------|--------|----------|
+| 扫描 | `config.mts` 的 `buildSections()`（构建期，Node） | **导航里有哪些项**、每项打到哪个目录 |
+| 注册 | `section.ts` 的 `SECTION_PANES`（主题层，手写） | **点开后长什么样**（专属 pane） |
+| 兜底 | `SectionPagesPane`（主题层，通用） | 未注册的分区自动变成页面列表 |
+
+两者解耦 → 新增一个文件夹，导航立刻有它；不写任何组件也能点开看内容。
+
+### 9.5.1 「归档」Tab 的实现
+
+你选定的是**在首页内容区就地渲染**。难点在于 `archive/notes.md` 的正文是 `<NoteList />`、`archive/planning.md` 是 `<PlanningList />`——**构建期用 markdown-it 渲染时，这两个标签只会变成一段字面量文本**，不会真的变成组件。
+
+所以归档 Tab 不能用「渲染 md → `v-html`」的通用路子，得走组件直挂。
+
+#### 方案：`ArchivePane.vue`（注册到 `SECTION_PANES`）
+
+```
+SECTION_PANES = {
+  home:    HomePane,
+  notes:   LearningPane,
+  diary:   PlanningPane,
+  archive: ArchivePane      ← 新增，专用
+}
+```
+
+`ArchivePane.vue` 的内容就是把两个现有组件上下排开：
+
+```vue
+<template>
+  <div class="archive-pane">
+    <section class="archive-block">
+      <h2>笔记目录</h2>
+      <NoteList />
+    </section>
+    <section class="archive-block">
+      <h2>人生规划</h2>
+      <PlanningList :years="planningYears" />
+    </section>
+  </div>
+</template>
+```
+
+要点：
+
+| 项 | 说明 |
+|----|------|
+| `NoteList` | 直接复用（它自己 `import.meta.glob` 扫 md，无需传参） |
+| `PlanningList` | 需要 `years`，从 `page.value.planningYears` 取（与 `PlanningPane` 同一数据源） |
+| 分组标题 | `archive/notes.md`、`archive/planning.md` 里的一级标题已经变成区块标题，页内不再重复显示 md 原文 |
+| 两个 md 文件 | **保留**，它们仍作为 `/archive/notes.html`、`/archive/planning.html` 独立页存在（直接访问时正常渲染组件）。同时它们让扫描器识别到 `archive/` 是一个有效分区 |
+
+#### 同时保留通用兜底 `SectionPagesPane.vue`
+
+给**未来新加的、没有注册专用 pane 的目录**兜底用：列出该目录下所有 md 页面（标题 + 摘要），点击就地展开渲染好的 HTML。
+
+```ts
+const pane = SECTION_PANES[key] ?? SectionPagesPane
+```
+
+于是分层很清楚：
+
+| 分区 | 用哪个 pane | 效果 |
+|------|-------------|------|
+| `notes` | `LearningPane`（专用） | 卡片列表 → 分类 → 三栏阅读 |
+| `diary` | `PlanningPane`（专用） | 年份网格 |
+| `archive` | `ArchivePane`（专用） | 笔记目录 + 人生规划两块并排显示 |
+| 未来任意新目录 | `SectionPagesPane`（兜底） | 自动列出页面，无需写代码 |
+
+**扫描决定「导航有没有这一项」，注册决定「点开长什么样」**——两者解耦。这就是你要的「多设计一个标签也能让导航找到它」。
+
+> 兜底 pane 的 `pages[].html` 由 `buildSections()` 构建期填充，**只对未注册 pane 的分区填**（`notes` / `diary` / `archive` 不填），避免首页序列化体积翻倍。
+
+### 9.6 文件迁移（M1：纯文件系统操作）
+
+> 不使用任何 git 命令（项目宪法第一条第四款）。迁移用 `mv`，提交时 git 会自动识别为重命名。
+
+```bash
+cd F:/web/Miracle2Master.github.io/docs
+
+mkdir -p notes diary archive
+
+# 1) 笔记分区：5 个顶层内容目录整体搬入 notes/
+mv Spring notes/
+mv 机器学习 notes/
+mv 深度学习 notes/
+mv 周志华机器学习笔记 notes/
+mv 微服务 notes/
+
+# 2) 日记分区：planning/ 全部内容搬入 diary/
+mv planning/* diary/
+rmdir planning
+
+# 3) 归档分区：两个孤儿页搬入 archive/
+mv notes.md archive/
+mv planning.md archive/
+
+# 4) 删除冗余图片副本（已核验无引用，见 9.2.1）
+rm -rf img/
+```
+
+**迁移后必须逐项核对**：
+
+| 核对项 | 期望 |
+|--------|------|
+| `docs/notes/Spring/img/`、`docs/notes/微服务/img/` 等 | 随父目录一起搬走，文件数不变（78/73/115/92/61/211/79 等） |
+| `docs/diary/日记/2025.md`、`2026.md` | 存在于新路径 |
+| `docs/diary/目标与方向.md` | 存在于新路径 |
+| `docs/archive/notes.md`、`planning.md` | 存在于新路径 |
+| `docs/` 根目录 | 只剩 `index.md`、`notes/`、`diary/`、`archive/`、`category/`、`public/`（**`img/` 已删**） |
+
+### 9.7 代码改动（M2–M7）
+
+#### M2 `config.mts` — 路径与扫描
+
+| 位置 | 现状 | 改为 |
+|------|------|------|
+| 新增 | — | `buildSections()` + `SECTION_LABELS` / `SECTION_ORDER` / `NON_SECTION_DIRS` |
+| `buildPlanningYears()` L99 | `join(docsDir, 'planning', '日记')` | `join(docsDir, 'diary', '日记')` |
+| 同上 L106 | `link: \`/planning/日记/${name}.html\`` | `` `/diary/日记/${name}.html` `` |
+| `buildYearData()` L116 | `join(docsDir, 'planning', '日记', year)` | `join(docsDir, 'diary', '日记', year)` |
+| `injectPlanningData()` L149 | `/planning\/日记\/(\d{4})\.md$/` | `/diary\/日记\/(\d{4})\.md$/` |
+| `buildNoteContent()` L234 | `walk(docsDir)` | `walk(NOTES_DIR)`，`const NOTES_DIR = join(docsDir, 'notes')` |
+| 同上 L235 | `relative(docsDir, file)` | `relative(NOTES_DIR, file)`（**必须换基准**，否则 key 会变成 `notes/Spring/...`） |
+| 同上 L236-240 | `EXCLUDED` / `startsWith('planning/')` / `seg[0] === 'category'` 三重过滤 | 三行全部删除——遍历 `notes/` 已天然排除日记页、分类页、首页 |
+| 同上 L248 | `const key = rel.replace(/\.md$/, '')` | **保持不变**——`key` 必须相对 `notes/`，否则 `NoteView` 的 `key.split('/')[0]` 会取到 `notes` 而不是 `Spring` |
+| 同上 L250 | `noteDir` 相对 `notes/` | 保持；`rewriteImgSrcs` 的相对基准同步换成 `NOTES_DIR` |
+| `rewriteImgSrcs()` L209 / L218 | `join(docsDir, srcPath)` | `join(NOTES_DIR, srcPath)`（图片兜底路径） |
+| `injectIndexData()` / `injectPlanningData()` | `file.endsWith('index.md')` 无路径限定 | **建议收紧**为 `file === 'index.md' \|\| file === 'index.html'`。当前写法下，将来若在 `notes/` 里加 `index.md`，它也会被塞进 `noteContent`（体积几十 MB 的 HTML），白白撑大页面 |
+| 新增 | — | `buildSections()` 需要为**未注册 pane 的分区**（当前是 `archive`、以及未来任何新目录）填充 `pages[].html`；已注册的 `notes` / `diary` 不填，避免首页序列化体积翻倍 |
+| `buildSidebar()` L30–95 + `const sidebar` L95 | 已无消费者（`themeConfig.sidebar: false`），`sidebar` 变量全项目无人读取 | **建议删除**（死代码，且内部硬编码 `seg[0] === 'planning'` 会造成误导）。若删除，需一并清掉只被它使用的 `firstTitle()`、`orderOf()`、`type SidebarItem`、L45 的 `EXCLUDED` 常量，以及只被 `firstTitle` 使用的 `basename` 导入。若你不希望删，则至少把里面的 `'planning'` 改 `'diary'` |
+
+#### M3 `SecNav.vue` — 动态导航
+
+- 新增 `useData()`，读 `page.value.sectionNav`；
+- 模板：`首页`（固定）+ `v-for` 扫描结果；
+- `go(item)`：首页内只改 `sectionTab.value = item.key`；独立页整页跳 `/#<key>`；
+- `isActive(item)` 重写为**单一判定**（见下），彻底消除 9.1 描述的「独立笔记页二级导航一个都不亮」的缺陷：
+
+```ts
+// 首页：由共享 Tab 状态驱动；其他页面：只看路径第一段，不回退到 sectionTab
+// （sectionTab 是首页内状态，独立页上它可能是过期的残留值，不能参与判定）
+// 例：/notes/Spring/AI/x.html → 第一段 notes → 高亮「笔记」
+function isActive(item: { key: string }): boolean {
+  const p = route.path
+  if (p === '/' || p === '/index.html') return sectionTab.value === item.key
+  const first = p.replace(/^\//, '').split('/')[0].replace(/\.html$/, '')
+  return first === item.key
+}
+```
+
+> 这样 `/notes/Spring/AI/x.html`、`/notes.html`（根级 md 页，第一段去 `.html` 后正好是 `notes`）、`/diary/日记/2026.html` 都能正确高亮；`/category/Spring.html` 第一段是 `category`，没有对应导航项，全部不高亮——符合预期。
+
+#### M4 `HomeNoteList.vue` — 动态 pane
+
+| 位置 | 现状 | 改为 |
+|------|------|------|
+| L4-6 | 静态 import 三个 pane | 保留（`SECTION_PANES` 在 `section.ts` 里引用它们） |
+| L14-28 `syncFromHash()` | 判断 `#learning` / `#planning` | 先判 `#note-` / `#cat-`（→ `notes`），否则把 hash 去掉 `#` 后与 `sectionNav` 的 key 比对，命中即切，未命中回 `home` |
+| L42-51 | `visiblePane` 三值 | 改为 `SECTION_PANES[active.value]` |
+| L55 | `:class="{ 'is-learning': active === 'learning' }"` | `:class="{ 'is-wide': WIDE_SECTIONS.has(active) }"` |
+| L59-69 模板 | 三个写死的 `v-show` 块 | 改为一条渲染路径：遍历 `[HOME_KEY, ...sectionNav.map(i => i.key)]`，每项渲染 `<component :is="SECTION_PANES[key] ?? SectionPagesPane" :section-key="key" :pages="..." />`，用 `v-show` 控制显隐（保留现有 panes「切换不销毁」的行为） |
+| 样式 L99-113 | `.is-learning` 相关规则 | 选择器改为 `.is-wide`，规则内容不变 |
+
+> 让 pane 拿 `section-key` 的原因：`LearningPane` 现在有 3 处 `sectionTab.value = 'learning'` 的硬编码，改为 `sectionTab.value = props.sectionKey` 后，组件不用知道自己在哪个目录下。
+
+#### M5 `LearningPane.vue`
+
+| 位置 | 改动 |
+|------|------|
+| L88 / L97 / L105 | `sectionTab.value = 'learning'` → `sectionTab.value = props.sectionKey` |
+| L138 | `watch(sectionTab, v => { if (v !== 'learning') ... })` → `if (v !== props.sectionKey)` |
+| 其余 | 不动（`allNotes` / 分组 / 三栏视图逻辑全部复用） |
+
+#### M6 `PlanningYear.vue` + `SectionNav.vue` + `HomePane.vue`
+
+| 文件 | 位置 | 改动 |
+|------|------|------|
+| `PlanningYear.vue` | L70-78 `goTab()` | `/#learning` → `/#notes`，`/#planning` → `/#diary`；更稳妥的做法是从 `page.sectionNav` 取 key，不写死 |
+| `PlanningYear.vue` | L51 注释里的示例路径 | 更新为 `/diary/日记/2025#...` |
+| `SectionNav.vue` | L5-9 `tabs` | 目前仍是写死的「个人主页 / 学习记录 / 人生规划」，与其他导航不一致。**建议从 `PlanningYear` 移除**（该组件仅此一处使用，职责与 `SecNav` 重复）；备选是改为消费 `sectionNav` |
+| `HomePane.vue` | L8-9 | `href="/#learning"` → `/#notes`，`/#planning` → `/#diary` |
+
+#### M7 分类页、归档 pane 与遗留组件
+
+| 文件 | 位置 | 改动 |
+|------|------|------|
+| `CategoryList.vue` | L23-31 | `rel` 现在形如 `notes/Spring/AI/x.md`：改为要求 `seg[0] === 'notes'`，用 `seg[1]` 匹配 `props.name`，链接模板改成 `'/' + rel.replace(/\.md$/, '.html')`（**注意 `rel` 已带 `notes/` 前缀，链接会自动正确**）。当前 `if (seg[0] !== props.name) continue` 会让所有分类页变空，**必须改** |
+| `NoteList.vue` | L17-31 | 两处必须改：<br>1. 过滤：`rel.startsWith('notes/')` 之外的**全部跳过**——否则会把 `diary/`、`archive/` 也列进来，且 `archive/notes.md` 会自己列自己；<br>2. 分组：`group` 从 `seg[0]` 改为 `seg[1]`，否则所有笔记会挤进一个名为 `notes` 的组。<br>3. 链接：`'/' + rel.replace(...)` 已自带 `notes/` 前缀，无需改 |
+| 新增 `ArchivePane.vue` | — | 归档 Tab 的专用 pane：上下两块渲染 `<NoteList />` 与 `<PlanningList :years>`（见 9.5.1） |
+| 新增 `SectionPagesPane.vue` | — | **通用兜底 pane**：未来未注册 pane 的分区用它，列出页面 + 就地渲染 |
+| `archive/notes.md` / `archive/planning.md` | — | **正文不改**，保留 `<NoteList />` / `<PlanningList />`（它们仍作为独立页可访问） |
+| `PlanningList.vue` | — | **保留**；`ArchivePane` 里需要显式传 `years`（从 `page.value.planningYears` 取，与 `PlanningPane` 同源） |
+| `index.ts` | L16-22 `enhanceApp` | 注册新增的 `ArchivePane`、`SectionPagesPane` |
+
+> 9.7 的 M2–M7 编号对应关系：M2 `config.mts`、M3 `SecNav`、M4 `HomeNoteList`、M5 `LearningPane`、M6 `PlanningYear`/`SectionNav`/`HomePane`、M7 本节。
+
+### 9.8 破坏性影响与回滚
+
+**会变的东西**
+
+| 项目 | 影响 |
+|------|------|
+| 所有笔记 URL | `/Spring/AI/x.html` → `/notes/Spring/AI/x.html`；老书签/外链 404（GitHub Pages 无服务端重定向） |
+| 年份页 URL | `/planning/日记/2026.html` → `/diary/日记/2026.html` |
+| 归档页 URL | `/notes.html` → `/archive/notes.html`；`/planning.html` → `/archive/planning.html` |
+| 页内深链 hash | `#note-Spring/AI/x`、`#cat-Spring` 格式不变（key 仍相对 `notes/`）；`#learning` / `#planning` 改为 `#notes` / `#diary`；归档 Tab 用 `#archive` |
+| 密码门 session 键 | `miracle-auth-diary` 不变 |
+| 搜索索引 | 构建期重建，自动指向新路径，无需处理 |
+
+**不会变的东西**
+
+- 所有 md 正文与 frontmatter（含 `order`）**一字不改**（`archive/` 两页也保持原样，`<NoteList />` / `<PlanningList />` 保留）；
+- 相对图片路径（整树搬迁，相对关系不变）；
+- 笔记正文的渲染管线、图片 hash 重写机制；
+- 笔记 `key` 的形态（仍是 `Spring/AI/x`），因此分组、排序、深链逻辑全部复用。
+
+#### 9.8.1 `/notes.html` 与 `/notes/` 会不会打架
+
+**改造后会彻底不打架**——`notes.md` 已移入 `archive/`，根目录不再有 `/notes.html`，`/notes/` 是唯一的笔记路径前缀。
+
+改造前（若不动）也不会冲突：`docs/notes/` 下没有 `index.md`，构建不产出 `/notes/index.html`。但两者语义混淆，这正是移走 `notes.md` 的原因。
+
+#### 9.8.2 老链接是否要做跳转
+
+GitHub Pages 是纯静态托管，没有服务端 302。可选做法：
+
+| 方案 | 效果 | 代价 |
+|------|------|------|
+| A 不处理 | 老链接 404 | 零成本；个人站点，外链极少 |
+| B 写 `404.html` 前端跳转 | 老链接自动跳到新路径 | 需写一段匹配旧路径的 JS，维护一张路径映射 |
+| C 保留旧路径的空壳 md | 老链接能落地 | 每个旧文件都要留一份壳，与「目录重构」目标相悖 |
+
+**建议 A**：本站是个人笔记站，外链可忽略；等真有需要再上 B。
+
+**回滚**：迁移是纯 `mv`/`rm`，回滚即把 `notes/*`、`diary/*`、`archive/*` 反向 `mv` 回 `docs/` 并恢复 `planning/` 目录名。⚠️ **`docs/img/` 是 `rm -rf` 删除的，本地无法恢复**——若要保留退路，删之前先把它 `mv` 到项目外做备份，或依赖 git 历史恢复（该目录已被 git 跟踪，`git checkout` 可恢复）。代码改动集中在 7 个文件，可按 9.7 的表格逐条还原。
+
+### 9.9 验证清单
+
+> 项目宪法规定不主动执行构建。以下命令**经你同意后**再运行。
+
+```bash
+npm run docs:build      # 必须 0 error
+npm run docs:preview
+```
+
+逐项检查：
+
+- [ ] 首页二级导航显示「首页 / 笔记 / 日记 / 归档」，**顺序正确**
+- [ ] 首页点「笔记」→ 就地切 Tab，URL 变 `/#notes`，三栏布局宽度正常（宽容器生效）
+- [ ] 首页点「日记」→ 就地切 Tab，URL 变 `/#diary`，年份网格正常
+- [ ] 首页点「归档」→ 就地切 Tab，URL 变 `/#archive`，同屏显示「笔记目录」与「人生规划」两块内容（笔记卡片网格 + 年份网格都能正常渲染、可点击）
+- [ ] 笔记列表卡片分组仍是 `Spring / 机器学习 / 深度学习 / 周志华机器学习笔记 / 微服务`（**不是 `notes`**）
+- [ ] 归档里的「笔记目录」分组也仍是那 5 个分类名（不是 `notes`）
+- [ ] 点开任意笔记 → 正文图片正常显示（不是 404）
+- [ ] 直接访问 `/notes/Spring/AI/xxx.html` → 独立页正常渲染，顶部导航「笔记」高亮（这是本次顺带修掉的旧缺陷）
+- [ ] 直接访问 `/diary/日记/2026.html` → 年份页正常，左侧日记列表正常，点某篇弹密码门
+- [ ] 直接访问 `/archive/notes.html`、`/archive/planning.html` → 独立页正常，顶部导航「归档」高亮
+- [ ] 直接访问 `/category/Spring.html` → 分类页正常、**不为空**，链接指向 `/notes/...`，顶部导航无高亮（category 不是分区）
+- [ ] 刷新 `/#notes`、`/#diary`、`/#archive` 能还原到对应 Tab
+- [ ] 搜索任意笔记标题 → 结果链接指向 `/notes/...`
+- [ ] 浏览器控制台无错误
+
+### 9.10 待确认事项
+
+| # | 事项 | 选项 | 我的建议 |
+|---|------|------|----------|
+| 1 | `docs/category/`（9 个分类索引页） | A 保留并修 `CategoryList.vue` / B 整目录删除 | **A**：功能本身有价值，只需改扫描前缀 |
+| 2 | `config.mts` 里的死代码 `buildSidebar()`（66 行，全项目无人调用） | A 删除 / B 保留仅改路径 | **A**：保留只会误导后续维护 |
+| 3 | `SectionNav.vue`（年份页顶部的三格 Tab） | A 改为读 `sectionNav` / B 从年份页移除 | **B**：与 `SecNav` 职责重复，见下方说明 |
+
+#### 关于你问的「第六项」和「第七项」
+
+**第六项（原：深链前缀 `#note-` / `#cat-`）——不是要把前缀去掉。**
+
+那是一个**我多虑了**的提议，现已撤销，**保持原样，不做任何改动**。解释一下当时为什么列它：
+
+- 页面内的深链（可分享、可刷新还原的地址）现在长这样：
+  - `/#note-Spring/AI/xxx` —— 表示「笔记分区里，正在看这篇」
+  - `/#cat-Spring` —— 表示「笔记分区里，正在看这个分类」
+- 改成动态导航后，分区切换的 hash 变成了 `#notes`、`#diary`、`#archive`。
+- 我当时担心 `#notes`（分区）和 `#note-Spring/...`（笔记深链）看起来太像，会混淆，所以提议把深链前缀改成 `#file-` / `#folder-`。
+
+**结论：不改。** 三个字符就能区分（`#notes` 是 `s` 结尾、没有短横线；`#note-` 带短横线），而且改前缀会影响所有已存在的书签，收益不抵风险。这一项从待确认列表移除，视为「保持现状」。
+
+**第七项（`SectionNav.vue`）——它是年份页里的一条重复导航。**
+
+现状是：打开某个年份页（如 `/planning/日记/2026.html`）时，页面顶部会出现一个三格横排的 Tab：
+
+```
+┌──────────┬──────────┬──────────┐
+│ 个人主页  │ 学习记录  │ 人生规划  │   ← 这就是 SectionNav.vue
+└──────────┴──────────┴──────────┘
+```
+
+而屏幕最上方（标题栏下方）**已经有**一条 `SecNav`：
+
+```
+首页 │ 笔记 │ 日记 │ 归档                  ← 这是 SecNav.vue（全站固定）
+```
+
+问题在于：
+
+1. **两套导航并存**，一条说「学习记录 / 人生规划」，另一条说「笔记 / 日记」，**用词都不一致**；
+2. `SectionNav.vue` 的文案**写死在代码里**（`SectionNav.vue:5-9`），改造后 `SecNav` 是扫描生成的，它却还是旧的三个词，会显得更突兀；
+3. 它只被 `PlanningYear.vue` 用了一次。
+
+**选项 A**：让 `SectionNav` 也去读扫描结果，跟 `SecNav` 保持一致。代价是页面上仍有两套导航，视觉上重复。
+
+**选项 B（我建议）**：把 `SectionNav` 从年份页里移除。年份页自带一个「← 返回日记」按钮就够了（回 `/#diary`），全站回到「只有一条二级导航」。截掉这块后年份页的实际布局是：
+
+```
+屏幕顶部：  首页 │ 笔记 │ 日记 │ 归档          ← 唯一导航，全站一致
+            ────────────────────────────
+年份页面：  ← 返回日记
+            ┌──────────┬──────────────────┐
+            │ 2026 年  │                  │
+            │ 10月     │   （点左侧某篇      │
+            │ 9月      │   才显示正文）      │
+            │ ...      │                  │
+            └──────────┴──────────────────┘
+```
+
+确认后按 M1 → M7 顺序执行：
+
+| 阶段 | 内容 | 对应章节 |
+|------|------|----------|
+| M1 | 文件迁移：建 `notes/` `diary/` `archive/`，搬内容，`rm -rf docs/img/` | 9.6 |
+| **复核点** | **停下来给你看一次目录结构，确认无误再动代码** | — |
+| M2 | `config.mts`：`planning` → `diary`、新增 `buildSections()`、`buildNoteContent` 换基准 | 9.7 M2 |
+| M3 | `section.ts`（`sectionTab` 改 `string`、`SECTION_PANES` / `HOME_KEY` / `WIDE_SECTIONS`）+ `SecNav.vue` 动态渲染 + 统一高亮判定 | 9.5、9.7 M3 |
+| M4 | `HomeNoteList.vue`：动态 pane + hash 解析 | 9.7 M4 |
+| M5 | `LearningPane.vue`：硬编码 `'learning'` → `props.sectionKey` | 9.7 M5 |
+| M6 | `PlanningYear.vue` / `SectionNav.vue` / `HomePane.vue`：路径与链接更新（含移除 `SectionNav`） | 9.7 M6 |
+| M7 | 新增 `ArchivePane.vue`（归档 Tab）与 `SectionPagesPane.vue`（通用兜底）；`CategoryList.vue` 改扫描前缀；`index.ts` 注册新组件 | 9.5.1、9.7 M7 |
+| **验证** | 经你同意后再跑 `docs:build` + `docs:preview` | 9.9 |

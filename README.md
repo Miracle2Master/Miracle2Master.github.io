@@ -4,6 +4,8 @@
 
 ## 本地调试
 
+### 方式一：开发服务器（实时刷新，适合写笔记/调样式，但主容器内笔记图片不显示）
+
 在项目根目录执行：
 
 ```bash
@@ -13,6 +15,28 @@ npm run docs:dev     # 启动开发服务器，浏览器打开 http://localhost:
 
 - 改 `docs/` 下的 `.md` 笔记，页面会实时刷新。
 - 别双击 `index.html` 打开，那样是 `file://` 协议，会白屏。
+- ⚠️ 主容器内阅读的笔记图片需要构建产物（`dist/assets`），dev 模式下**图片可能不显示**。
+
+### 方式二：构建 + 预览（与线上一致，笔记图片正常显示，适合调试主容器阅读/图片）
+
+```bash
+npm run docs:build    # 构建到 .vitepress/dist/（图片重写为 /assets/hash.png）
+npm run docs:preview  # 预览构建产物，浏览器打开 http://localhost:4173/
+```
+
+- 与线上部署（GitHub Actions `docs:build` + 发布 dist）**完全一致**。
+- 每次改动代码/笔记后需要重新 `npm run docs:build`，再刷新预览。
+
+### 方式三：一键构建 + 预览脚本（推荐，改动后只需一条命令）
+
+```bash
+npm run docs:dev-build
+```
+
+- 等价于 `npm run docs:build && npm run docs:preview`，一条命令搞定构建 + 启动预览。
+- 浏览器打开 `http://localhost:4173/` 查看。
+- 每次改完代码/笔记，重新执行这条命令，再刷新页面即可看到最新效果。
+- 首次需要 `npm install` 安装依赖。
 
 ## 构建（生成最终网页文件）
 

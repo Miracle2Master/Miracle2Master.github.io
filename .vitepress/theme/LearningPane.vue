@@ -61,8 +61,10 @@ const currentNoteTitle = computed(() => {
 })
 
 // hash 解析：view#note-key 或 view#cat-group
+// 说明：location.hash 返回的是百分号编码串（中文被编码为 %E5%AE...），
+// 而笔记 key 是解码后的真实名，匹配前先 decodeURIComponent 还原。
 function parseHash(): { note: string; cat: string } {
-  const h = window.location.hash.replace(/^#/, '')
+  const h = decodeURIComponent(window.location.hash.replace(/^#/, ''))
   if (h.startsWith('note-')) return { note: h.slice(5), cat: '' }
   if (h.startsWith('cat-')) return { note: '', cat: h.slice(4) }
   return { note: '', cat: '' }
@@ -225,16 +227,17 @@ onUnmounted(() => {
   align-items: flex-start;
   gap: 12px;
   padding: 20px 24px;
-  border: 1px solid rgba(34, 211, 238, 0.28);
+  /* 卡片：深蓝底 + 深灰细框（不用青色），hover 才转蓝 */
+  border: 1px solid var(--vp-c-divider);
   border-radius: 12px;
-  background: var(--vp-c-bg);
+  background: var(--note-active-bg);
   cursor: pointer;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .note-group:hover {
-  border-color: rgba(34, 211, 238, 0.6);
-  box-shadow: 0 0 14px rgba(34, 211, 238, 0.22);
+  border-color: var(--note-accent);
+  box-shadow: 0 0 14px var(--note-accent-glow);
 }
 
 .note-group h3 {
@@ -242,7 +245,8 @@ onUnmounted(() => {
   line-height: 24px;
   font-weight: 600;
   margin: 0;
-  color: var(--vp-c-text-1);
+  /* 文件夹标题：统一主题蓝 */
+  color: var(--note-accent);
 }
 
 .entry-list {
@@ -252,13 +256,14 @@ onUnmounted(() => {
   align-items: center;
 }
 
+/* 笔记标签：胶囊保留，换蓝黑配色 */
 .entry-tag {
   display: inline-block;
   padding: 4px 12px;
-  border: 1px solid rgba(34, 211, 238, 0.35);
+  border: 1px solid var(--vp-c-divider);
   border-radius: 999px;
-  background: rgba(34, 211, 238, 0.06);
-  color: var(--vp-c-brand-1);
+  background: var(--note-active-bg);
+  color: var(--note-accent);
   text-decoration: none;
   font-size: 14px;
   line-height: 22px;
@@ -266,22 +271,21 @@ onUnmounted(() => {
 }
 
 .entry-tag:hover {
-  color: #04121a;
-  background: var(--vp-c-brand-1);
-  border-color: var(--vp-c-brand-1);
-  box-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
+  color: #fff;
+  background: var(--note-accent);
+  border-color: var(--note-accent);
 }
 
 .more-link {
   display: inline-block;
   font-size: 13px;
-  color: var(--vp-c-brand-1);
+  color: var(--note-accent);
   text-decoration: none;
   transition: color 0.2s ease;
 }
 
 .more-link:hover {
-  color: var(--vp-c-brand-2);
+  color: var(--note-accent-hover);
   text-decoration: underline;
 }
 
@@ -291,7 +295,7 @@ onUnmounted(() => {
   right: 16px;
   bottom: 10px;
   font-size: 12px;
-  color: var(--vp-c-brand-1);
+  color: var(--note-accent);
   opacity: 0;
   transition: opacity 0.2s ease;
 }
@@ -301,25 +305,24 @@ onUnmounted(() => {
 }
 
 /* ===== 子视图（分类目录 / 笔记阅读） ===== */
+/* 返回按钮：纯文字，字色跟导航（与 NoteView 内的返回按钮同一套） */
 .back-btn {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 6px 14px;
+  padding: 6px 0;
   font-size: 13px;
   font-family: inherit;
-  color: var(--vp-c-brand-1);
-  background: rgba(34, 211, 238, 0.06);
-  border: 1px solid rgba(34, 211, 238, 0.35);
-  border-radius: 999px;
+  color: var(--note-accent);
+  background: transparent;
+  border: none;
+  border-radius: 0;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: color 0.2s ease;
 }
 
 .back-btn:hover {
-  color: #04121a;
-  background: var(--vp-c-brand-1);
-  border-color: var(--vp-c-brand-1);
+  color: var(--note-accent-hover);
 }
 
 .cat-title,
@@ -328,7 +331,7 @@ onUnmounted(() => {
   line-height: 28px;
   font-weight: 700;
   margin: 16px 0 16px;
-  color: var(--vp-c-brand-1);
+  color: var(--note-accent);
 }
 
 .cat-list {
@@ -343,19 +346,19 @@ onUnmounted(() => {
 .cat-list a {
   display: inline-block;
   padding: 8px 16px;
-  border: 1px solid rgba(34, 211, 238, 0.35);
+  border: 1px solid var(--vp-c-divider);
   border-radius: 999px;
-  background: rgba(34, 211, 238, 0.06);
-  color: var(--vp-c-brand-1);
+  background: var(--note-active-bg);
+  color: var(--note-accent);
   text-decoration: none;
   font-size: 14px;
   transition: all 0.2s ease;
 }
 
 .cat-list a:hover {
-  color: #04121a;
-  background: var(--vp-c-brand-1);
-  border-color: var(--vp-c-brand-1);
+  color: #fff;
+  background: var(--note-accent);
+  border-color: var(--note-accent);
 }
 
 .note-view {

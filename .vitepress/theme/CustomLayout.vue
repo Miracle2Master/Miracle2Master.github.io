@@ -30,6 +30,9 @@ const slots = useSlots()
 // 首页 hero 右侧始终渲染（模板里已提供默认矩形块占位内容）
 const heroImageSlotExists = computed(() => true)
 
+// 是否首页（决定是否挂载 HomeNoteList、是否跳过空 VPContent）
+const isHome = computed(() => route.path === '/' || route.path === '/index.html')
+
 provide('hero-image-slot-exists', heroImageSlotExists)
 </script>
 
@@ -53,14 +56,19 @@ provide('hero-image-slot-exists', heroImageSlotExists)
     <VPLocalNav :open="isSidebarOpen" @open-menu="openSidebar" />
 
     <!-- 首页：Main 容器 = 页面主体（hero + 导航下方全部内容），由 HomeNoteList 挂载 -->
-    <HomeNoteList v-if="route.path === '/' || route.path === '/index.html'" />
+    <HomeNoteList v-if="isHome" />
 
     <VPSidebar :open="isSidebarOpen">
       <template #sidebar-nav-before><slot name="sidebar-nav-before" /></template>
       <template #sidebar-nav-after><slot name="sidebar-nav-after" /></template>
     </VPSidebar>
 
-    <VPContent>
+    <!-- 首页不需要 VPContent：index.md 正文为空，渲染它只会多出
+         「最后更新」与 96px 空 padding，给学习 Tab 的整页滚动凭空增加行程、并多出一段空白。
+         其他页面（笔记独立页 / 规划等）照常渲染。
+         首页只保留同名锚点，让 VPSkipLink 的 #VPContent 跳转不失效（空元素不占高度）。 -->
+    <div v-if="isHome" id="VPContent" />
+    <VPContent v-else>
       <template #page-top><slot name="page-top" /></template>
       <template #page-bottom><slot name="page-bottom" /></template>
 

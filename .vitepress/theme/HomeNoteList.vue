@@ -4,6 +4,7 @@ import { useData, useRoute } from 'vitepress'
 import HomePane from './HomePane.vue'
 import SectionPane from './SectionPane.vue'
 import { sectionTab, HOME_KEY } from './section'
+import { parseNoteHash, decodeHash } from '../shared/noteHash'
 import type { Component } from 'vue'
 
 const route = useRoute()
@@ -38,7 +39,7 @@ const paneKeys = computed(() => [HOME_KEY, ...sectionNav.value.map((s) => s.key)
 // 「所有分区的主界面应该跟笔记的主界面一模一样」，不按分区名逐个白名单
 const isWide = computed(() => active.value !== HOME_KEY)
 
-// hash 归属判定：#note-<key> 指向某篇 → 该 key 属于哪个分区就切到哪个分区。
+// hash 归属判定（仅旧格式用）：#note-<key> 没带分区，只能按 key 反查它属于哪个分区。
 // 抽出来是因为分区数现在是动态的，不能写死 notes。
 function sectionOfNote(key: string): string {
   for (const [k, list] of Object.entries(sectionContent.value)) {
@@ -48,14 +49,16 @@ function sectionOfNote(key: string): string {
 }
 
 // 从 URL hash 恢复分区：
-// #note-xxx 按所属分区切换；其余 hash 命中分区 key 即切换，未命中回首页
+// #note-<分区>/<key> 直接用分区段（各分区有同名笔记，key 单独不足以定位）；
+// 其余 hash 命中分区 key 即切换，未命中回首页
 function syncFromHash() {
-  const h = decodeURIComponent(window.location.hash)
-  if (h.startsWith('#note-')) {
-    sectionTab.value = sectionOfNote(h.slice(6))
+  const parsed = parseNoteHash(window.location.hash, sectionNav.value)
+  if (parsed) {
+    // 新格式自带分区，直接用；旧格式（#note-<key>，旧链接）按归属反查
+    sectionTab.value = parsed.section || sectionOfNote(parsed.key)
     return
   }
-  const key = h.replace(/^#/, '')
+  const key = decodeHash(window.location.hash)
   sectionTab.value = sectionNav.value.some((s) => s.key === key) ? key : HOME_KEY
 }
 

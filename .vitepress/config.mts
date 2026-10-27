@@ -10,6 +10,7 @@ import {
 import { createHash } from 'node:crypto'
 import { join, relative, dirname, resolve as resolvePath } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { notePathToHash } from './shared/noteHash'
 
 const docsDir = fileURLToPath(new URL('../docs', import.meta.url))
 
@@ -272,6 +273,10 @@ function injectSectionContent(pageData: Record<string, unknown>) {
   }
 }
 
+// ===== 独立页 → 首页三栏 =====
+// hash 的格式与编码规则统一在 shared/noteHash.ts，与主题的运行时改道共用一份实现，
+// 避免「构建期写的 hash」和「运行时解析的 hash」两套规则分叉。
+
 export default defineConfig({
   title: '奇迹大师的学习笔记',
   description: '我的学习笔记站',
@@ -284,11 +289,30 @@ export default defineConfig({
   // 站点配色只维护深色一套，避免两套色值分叉。
   appearance: 'force-dark',
   // 构建时给所有页面 <html> 加默认 dark（极客风首屏即深色）
-  transformHtml(code) {
-    return code.replace(
+  // 另外：分区笔记的独立页（/notes/x.html 这类）注入一行跳转脚本，把地址换成首页三栏。
+  // 为什么在构建期做：独立页是另一套渲染路径（没有左栏目录，见 themeConfig.sidebar），
+  // 而站点唯一的主界面是首页三栏。脚本放在 <head> 里 charset 之后、其它资源之前，
+  // 浏览器解析到这里就换地址，既不用等 CSS/JS，也不会先闪一下「没有左栏的页面」。
+  // 运行时（已经在首页里点搜索结果）的改道在 theme/noteRoute.ts，两处配合覆盖全部入口。
+  transformHtml(code, _id, ctx) {
+    let out = code.replace(
       '<html lang="zh-CN" dir="ltr">',
       '<html lang="zh-CN" dir="ltr" class="dark">'
     )
+    const first = ctx.page.split('/')[0]
+    const hash = sectionNav.some((s) => s.key === first) ? notePathToHash(ctx.page) : null
+    if (hash) {
+      // hash 里有中文和可能出现的引号：用 JSON.stringify 生成合法的 JS 字面量，
+      // 再把 < 转义掉，防止文件名里的字符提前闭合 <script>。
+      const literal = JSON.stringify(hash).replace(/</g, '\\u003c')
+      const base = JSON.stringify(ctx.siteConfig.site.base)
+      // 锚在 charset 之后：脚本里含中文，必须让浏览器先确定编码再解析它
+      out = out.replace(
+        '<meta charset="utf-8">',
+        `<meta charset="utf-8">\n    <script>location.replace(${base}+${literal})</script>`
+      )
+    }
+    return out
   },
   // 首页注入全部分区内容（笔记 / 日记 / 归档……）；
   // 每个页面都注入分区导航（二级导航 + 动态 pane 的数据来源）

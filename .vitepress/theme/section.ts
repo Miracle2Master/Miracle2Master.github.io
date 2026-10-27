@@ -27,3 +27,4 @@ export function navToSection(key: string) {
   sectionClick.value++
   setSection(key)
 }
+

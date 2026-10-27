@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useData } from 'vitepress'
 import { sectionTab, sectionClick } from './section'
+import { noteHash, parseNoteHash, decodeHash } from '../shared/noteHash'
 import NoteView from './NoteView.vue'
 import PasswordGuard from './PasswordGuard.vue'
 
@@ -20,6 +21,11 @@ const notes = computed<NoteEntry[]>(() => {
   const all = page.value.sectionContent as Record<string, NoteEntry[]> | undefined
   return all?.[props.sectionKey] ?? []
 })
+
+// 分区清单：解析 #note-<分区>/<key> 时用来区分「首段是分区名」还是「旧格式的 key」
+const sectionNav = computed<{ key: string; text: string }[]>(
+  () => (page.value.sectionNav as { key: string; text: string }[]) ?? []
+)
 
 // 左栏标题：默认取导航里的显示文字（日记 → 日记 / 归档 → 归档）。
 // 笔记分区沿用原来的「全部笔记」，不因这次统一而改动既有界面。
@@ -78,7 +84,7 @@ function openNote(key: string) {
   pickedKey.value = key
   // 兜底：href="#" 触发的 hashchange 可能把分区翻回首页，这里锁定本分区
   sectionTab.value = props.sectionKey
-  history.replaceState(null, '', '#note-' + key)
+  history.replaceState(null, '', noteHash(props.sectionKey, key))
   window.scrollTo({ top: 0, behavior: 'auto' })
 }
 
@@ -90,15 +96,17 @@ function onUnlocked() {
   if (key && notes.value.some((n) => n.key === key)) {
     pickedKey.value = key
     sectionTab.value = props.sectionKey
-    history.replaceState(null, '', '#note-' + key)
+    history.replaceState(null, '', noteHash(props.sectionKey, key))
     window.scrollTo({ top: 0, behavior: 'auto' })
   }
 }
 
-// hash 解析：#note-<key> 指向本分区某篇；#<分区key>（点导航进来）或空 hash → 回到第一篇
+// hash 解析：#note-<分区>/<key> 指向本分区某篇；#<分区key>（点导航进来）或空 hash → 回到第一篇
 function syncFromHash() {
-  const h = decodeURIComponent(window.location.hash.replace(/^#/, ''))
-  const key = h.startsWith('note-') ? h.slice(5) : ''
+  const parsed = parseNoteHash(window.location.hash, sectionNav.value)
+  // 新格式带分区：只认本分区的那一条，避免同名笔记串到别的分区
+  const key =
+    parsed && (parsed.section === '' || parsed.section === props.sectionKey) ? parsed.key : ''
   if (key && notes.value.some((n) => n.key === key)) {
     if (lockedNow.value) {
       // 直链带 hash 但未解锁：弹门，解锁后直达该篇
@@ -109,6 +117,7 @@ function syncFromHash() {
     pickedKey.value = key
     return
   }
+  const h = decodeHash(window.location.hash)
   if (!h || h === props.sectionKey) pickedKey.value = ''
 }
 

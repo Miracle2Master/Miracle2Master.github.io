@@ -1,7 +1,7 @@
 import { defineConfig, createMarkdownRenderer } from 'vitepress'
 import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs'
 import { createHash } from 'node:crypto'
-import { join, relative, basename } from 'node:path'
+import { join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const docsDir = fileURLToPath(new URL('../docs', import.meta.url))
@@ -27,135 +27,133 @@ function walk(dir: string): string[] {
   return out
 }
 
-function firstTitle(file: string): string {
-  return basename(file, '.md')
+// ===== 分区扫描：docs/ 下每个一级子文件夹（含 md） = 二级导航里的一项 =====
+const NOTES_DIR = join(docsDir, 'notes')
+
+// 分区目录黑名单：这些目录是站点基础设施，不是内容分区
+const NON_SECTION_DIRS = new Set(['img', 'public', 'node_modules', '.vitepress'])
+
+// ===== 分区映射表 =====
+// 映射来源是 .vitepress/sections.txt（纯文本，一行一条「文件夹名 - 导航显示名」）。
+// 放在配置目录下而不是 docs/ 里：它是构建配置，不是内容，也不该被当成一个分区扫出来。
+// 未登记的文件夹不受影响——直接用文件夹名当导航名，排在已登记项之后。
+const SECTION_MAP_FILE = join(fileURLToPath(new URL('.', import.meta.url)), 'sections.txt')
+
+// 解析映射表 → 保留文件里的行序（行序即导航顺序）
+function loadSectionMap(): Map<string, string> {
+  const map = new Map<string, string>()
+  let raw = ''
+  try {
+    raw = readFileSync(SECTION_MAP_FILE, 'utf-8')
+  } catch {
+    return map // 文件不存在：全部回退成文件夹名，不阻断构建
+  }
+  for (const line of raw.split(/\r?\n/)) {
+    const text = line.trim()
+    if (!text || text.startsWith('#')) continue
+    // 分隔符是「空格 - 空格」；没有分隔符时整行当文件夹名，显示名同文件夹名
+    const at = text.indexOf(' - ')
+    const key = (at === -1 ? text : text.slice(0, at)).trim()
+    const label = (at === -1 ? text : text.slice(at + 3)).trim() || key
+    if (!key) continue
+    if (map.has(key)) {
+      console.warn(`[sections.txt] 「${key}」重复登记，以第一次为准`)
+      continue
+    }
+    map.set(key, label)
+  }
+  return map
 }
 
-function orderOf(file: string): number {
-  const content = readFileSync(file, 'utf-8')
-  const fm = content.match(/^---\s*\n([\s\S]*?)\n---/)
+const sectionMap = loadSectionMap()
+
+// 分区只存「标识 + 显示名」：正文不放在这里。
+// 各分区的正文统一由 buildSectionContent() 生成 pageData.sectionContent，
+// 前端只有一个 SectionPane，不为任何分区单独写界面。
+type SectionEntry = {
+  key: string
+  text: string
+}
+
+function buildSections(): SectionEntry[] {
+  const sections: SectionEntry[] = []
+  for (const name of readdirSync(docsDir)) {
+    if (NON_SECTION_DIRS.has(name)) continue
+    if (name.startsWith('.') || name.startsWith('_')) continue
+    const full = join(docsDir, name)
+    if (!statSync(full).isDirectory()) continue
+    // 每个一级文件夹都是一个分区，空文件夹同样保留：
+    // 新建 docs/<名字>/ 后重新构建，导航里就会立刻多出一项（点进去显示「该分区暂无内容」），
+    // 不需要先放 md、也不需要改配置。
+    // 显示名优先取 sections.txt 里的登记值，未登记则用文件夹名本身。
+    sections.push({ key: name, text: sectionMap.get(name) ?? name })
+  }
+  // 顺序：sections.txt 里登记过的按行的先后在前（表里不存在的目录已被忽略），
+  // 未登记的排在其后，按名称排序。这样「登记 = 定名字 + 定位置」，两件事一个文件搞定。
+  const registered = new Map([...sectionMap.keys()].map((k, i) => [k, i]))
+  return sections.sort((a, b) => {
+    const ia = registered.get(a.key)
+    const ib = registered.get(b.key)
+    if (ia !== undefined || ib !== undefined) {
+      return (ia === undefined ? Infinity : ia) - (ib === undefined ? Infinity : ib)
+    }
+    return a.key.localeCompare(b.key, 'zh-CN')
+  })
+}
+
+const sectionNav = buildSections()
+
+// ===== 统一分区内容：所有分区（笔记 / 日记 / 归档 / 未来任何新目录）一套数据结构 =====
+// 前端只有一个 SectionPane，不为任何分区单独写界面。
+// key 相对「分区根」：
+//   notes → 'Spring/AI/xxx'
+//   diary → '目标与方向'、'日记/2026/10月'
+// 只有 notes/ 与 diary/ 里存在独立页竞争，但两边各自独立，key 不会互相污染。
+type SectionEntryData = { title: string; key: string; html: string; order: number }
+
+// frontmatter order；没有就排到最后
+function orderOf(raw: string): number {
+  const fm = raw.match(/^---\s*\n([\s\S]*?)\n---/)
   if (!fm) return Number.MAX_SAFE_INTEGER
   const m = fm[1].match(/order\s*:\s*(\d+)/)
   return m ? parseInt(m[1], 10) : Number.MAX_SAFE_INTEGER
 }
 
-type SidebarItem = { text: string; link?: string; items?: SidebarItem[] }
-
-// 导航页不参与笔记侧边栏
-const EXCLUDED = new Set(['index.md', 'notes.md', 'planning.md'])
-
-function buildSidebar(): Record<string, SidebarItem[]> {
-  const folders = new Map<
-    string,
-    { files: { item: SidebarItem; order: number }[]; subs: Map<string, { item: SidebarItem; order: number }[]> }
-  >()
-  for (const file of walk(docsDir)) {
-    const rel = relative(docsDir, file).replace(/\\/g, '/')
-    if (EXCLUDED.has(rel)) continue
-    const seg = rel.split('/')
-    if (seg[0] === 'category') continue
-    if (seg[0] === 'planning') continue
-    const top = seg[0]
-    const link = '/' + rel.replace(/\.md$/, '')
-    const entry = { item: { text: firstTitle(file), link }, order: orderOf(file) }
-    if (!folders.has(top)) folders.set(top, { files: [], subs: new Map() })
-    const data = folders.get(top)!
-    if (seg.length === 2) {
-      data.files.push(entry)
-    } else {
-      const sub = seg[1]
-      if (!data.subs.has(sub)) data.subs.set(sub, [])
-      data.subs.get(sub)!.push(entry)
-    }
-  }
-
-  const byOrder = (
-    a: { order: number; item: SidebarItem },
-    b: { order: number; item: SidebarItem }
-  ) => a.order - b.order || a.item.text!.localeCompare(b.item.text!, 'zh-CN')
-
-  const result: Record<string, SidebarItem[]> = {}
-  for (const [top, data] of folders) {
-    data.files.sort(byOrder)
-    const items: SidebarItem[] = data.files.map((e) => e.item)
-    const subNames = [...data.subs.keys()].sort((a, b) => {
-      const oa = Math.min(...data.subs.get(a)!.map((e) => e.order))
-      const ob = Math.min(...data.subs.get(b)!.map((e) => e.order))
-      return oa - ob || a.localeCompare(b, 'zh-CN')
-    })
-    for (const sub of subNames) {
-      const subItems = data.subs.get(sub)!.sort(byOrder).map((e) => e.item)
-      items.push({ text: sub, items: subItems })
-    }
-    result['/' + top + '/'] = [{ text: top, items }]
-  }
-  return result
-}
-
-const sidebar = buildSidebar()
-
-// ===== 人生规划：按年份扫描 & 渲染日记 =====
-function buildPlanningYears(): { year: string; count: number; link: string }[] {
-  const base = join(docsDir, 'planning', '日记')
-  const arr: { year: string; count: number; link: string }[] = []
-  for (const name of readdirSync(base)) {
-    if (!/^\d{4}$/.test(name)) continue
-    const full = join(base, name)
-    if (!statSync(full).isDirectory()) continue
-    const count = walk(full).length
-    arr.push({ year: name, count, link: `/planning/日记/${name}.html` })
-  }
-  return arr.sort((a, b) => b.year.localeCompare(a.year))
-}
-
-const planningYears = buildPlanningYears()
-
-// 某年份的日记：读取 md → markdown-it 渲染成 HTML，供年页就地显示
-type YearEntry = { title: string; key: string; html: string; order: number }
-function buildYearData(year: string): YearEntry[] {
-  const base = join(docsDir, 'planning', '日记', year)
-  const arr: YearEntry[] = []
-  if (!statSync(base).isDirectory()) return arr
-  for (const name of readdirSync(base)) {
-    if (!name.endsWith('.md')) continue
-    const full = join(base, name)
-    if (statSync(full).isDirectory()) continue
-    const raw = readFileSync(full, 'utf-8')
-    // frontmatter order
-    let order = Number.MAX_SAFE_INTEGER
-    const fm = raw.match(/^---\s*\n([\s\S]*?)\n---/)
-    if (fm) {
-      const m = fm[1].match(/order\s*:\s*(\d+)/)
-      if (m) order = parseInt(m[1], 10)
-    }
+// 单个分区：遍历 docs/<section>/ 下全部 md（任意深度），构建期渲染成 HTML
+// 根级散文件（如 目标与方向.md）与子文件夹里的文件同等对待，前端 FileTree 会递归成树
+function buildSectionContent(sectionKey: string, imgMap: Map<string, string>): SectionEntryData[] {
+  const sectionDir = join(docsDir, sectionKey)
+  if (!existsSync(sectionDir) || !statSync(sectionDir).isDirectory()) return []
+  const slots: { title: string; key: string; html: string; order: number }[] = []
+  for (const file of walk(sectionDir)) {
+    const rel = relative(sectionDir, file).replace(/\\/g, '/')
+    const raw = readFileSync(file, 'utf-8')
     const body = raw.replace(/^---\s*\n[\s\S]*?\n---\s*\n?/, '')
-    arr.push({
-      title: name.replace(/\.md$/, ''),
-      key: name.replace(/\.md$/, ''),
-      html: md.render(body),
-      order
+    const key = rel.replace(/\.md$/, '')
+    // 文件所在目录（相对分区根），用于解析图片相对路径
+    const relDir = key.includes('/') ? key.slice(0, key.lastIndexOf('/')) + '/' : ''
+    slots.push({
+      title: rel.split('/').pop()!.replace(/\.md$/, ''),
+      key,
+      html: rewriteImgSrcs(md.render(body), relDir, imgMap, sectionDir),
+      order: orderOf(raw)
     })
   }
-  arr.sort((a, b) => a.order - b.order || a.title.localeCompare(b.title, 'zh-CN'))
-  return arr
+  slots.sort(
+    (a, b) => a.order - b.order || a.key.localeCompare(b.key, 'zh-CN', { numeric: true })
+  )
+  return slots
 }
 
-// 给首页注入年份列表；给年份壳页注入该年日记（含渲染好的 HTML）
-function injectPlanningData(pageData: Record<string, unknown>) {
-  const file = pageData.filePath ?? ''
-  if (file.endsWith('index.md')) {
-    pageData.planningYears = planningYears
-  }
-  const m = file.match(/planning\/日记\/(\d{4})\.md$/)
-  if (m) {
-    pageData.yearEntries = buildYearData(m[1])
-    pageData.yearTitle = `${m[1]} 年`
-  }
+// 全部分区：图片 hash 映射只建一次（建一次要读整个 assets 目录算 MD5，别按分区重复算）
+function buildAllSectionContent(): Record<string, SectionEntryData[]> {
+  const imgMap = buildImgHashMap()
+  const out: Record<string, SectionEntryData[]> = {}
+  for (const s of sectionNav) out[s.key] = buildSectionContent(s.key, imgMap)
+  return out
 }
 
-// ===== 学习记录：构建期渲染全部笔记 HTML（供主容器内就地阅读，不跳页） =====
-type NoteEntry = { title: string; key: string; html: string; order: number }
-
+// ===== 图片路径重写 =====
 // 图片源路径 → assets hash 文件名映射（构建期 VitePress 把 docs 下图片打进 dist/assets）
 // 同名图片（不同目录）内容相同，assets 里只有唯一 hash，按文件名映射不冲突。
 // 兼容策略：dist 尚不存在时（首次构建 / dev）返回空 Map，此时 render 时源文件在 docs 下直接存在，
@@ -190,7 +188,13 @@ function buildImgHashMap(): Map<string, string> {
 
 // 把渲染后的笔记 HTML 里的相对图片路径重写为 /assets/hash（对齐 VitePress 独立页机制）
 // 统一 build 模式：本地调试也用 docs:build + docs:preview，无 dev 分支
-function rewriteImgSrcs(html: string, noteRelDir: string, imgMap: Map<string, string>): string {
+// baseDir：noteRelDir 的基准目录（笔记正文相对 notes/，兜底 pane 的页面相对 docs/）
+function rewriteImgSrcs(
+  html: string,
+  noteRelDir: string,
+  imgMap: Map<string, string>,
+  baseDir: string = NOTES_DIR
+): string {
   const contentMap = (imgMap as unknown as Record<string, Map<string, string>>)['__contentMap'] as Map<string, string> | undefined
   return html.replace(
     /(<img[^>]*\bsrc=)(["'])([^"']+)(\2)/g,
@@ -206,7 +210,7 @@ function rewriteImgSrcs(html: string, noteRelDir: string, imgMap: Map<string, st
       if (hashed) return `${pre}${q}/assets/${hashed}${q}`
       // 文件名映射落空（内容同名去重）→ 按源文件内容 MD5 反查
       if (contentMap) {
-        const srcFull = join(docsDir, srcPath)
+        const srcFull = join(baseDir, srcPath)
         if (existsSync(srcFull)) {
           const h = createHash('md5').update(readFileSync(srcFull)).digest('hex')
           const target = contentMap.get(h)
@@ -215,7 +219,7 @@ function rewriteImgSrcs(html: string, noteRelDir: string, imgMap: Map<string, st
       }
       // 最后兜底：源文件存在但从未被 Vite 打包（如独立页 base64 内联、未被任何资源引用）
       // → 直接内联 base64，避免浏览器请求相对路径 404
-      const srcFull2 = join(docsDir, srcPath)
+      const srcFull2 = join(baseDir, srcPath)
       if (existsSync(srcFull2) && !/\.(gif|svg)$/i.test(srcPath)) {
         const ext = srcPath.split('.').pop()!.toLowerCase()
         const mime = ext === 'jpg' ? 'jpeg' : ext
@@ -227,45 +231,12 @@ function rewriteImgSrcs(html: string, noteRelDir: string, imgMap: Map<string, st
   )
 }
 
-function buildNoteContent(): NoteEntry[] {
-  const EXCLUDED = new Set(['index.md', 'notes.md', 'planning.md'])
-  const out: NoteEntry[] = []
-  const imgMap = buildImgHashMap()
-  for (const file of walk(docsDir)) {
-    const rel = relative(docsDir, file).replace(/\\/g, '/')
-    if (EXCLUDED.has(rel)) continue
-    if (rel.startsWith('planning/')) continue
-    const seg = rel.split('/')
-    if (seg[0] === 'category') continue
-    const raw = readFileSync(file, 'utf-8')
-    let order = Number.MAX_SAFE_INTEGER
-    const fm = raw.match(/^---\s*\n([\s\S]*?)\n---/)
-    if (fm) {
-      const m = fm[1].match(/order\s*:\s*(\d+)/)
-      if (m) order = parseInt(m[1], 10)
-    }
-    const body = raw.replace(/^---\s*\n[\s\S]*?\n---\s*\n?/, '')
-    const key = rel.replace(/\.md$/, '')
-    // 笔记所在目录（相对 docs 根），用于解析图片相对路径
-    const noteDir = key.includes('/') ? key.slice(0, key.lastIndexOf('/')) + '/' : ''
-    const html = rewriteImgSrcs(md.render(body), noteDir, imgMap)
-    out.push({
-      title: seg[seg.length - 1].replace(/\.md$/, ''),
-      key,
-      html,
-      order
-    })
-  }
-  out.sort((a, b) => a.order - b.order || a.title.localeCompare(b.title, 'zh-CN'))
-  return out
-}
-
-// 首页注入：年份列表 + 全部笔记 HTML（构建期一次渲染，运行时零解析）
-function injectIndexData(pageData: Record<string, unknown>) {
+// ===== 首页注入：全部分区内容（构建期一次渲染，运行时零解析） =====
+// 只有首页需要：所有分区 pane 都挂在首页上（v-show），点导航就地切换、不跳页。
+function injectSectionContent(pageData: Record<string, unknown>) {
   const file = pageData.filePath ?? ''
-  if (file.endsWith('index.md')) {
-    pageData.planningYears = planningYears
-    pageData.noteContent = buildNoteContent()
+  if (file === 'index.md' || file === 'index.html') {
+    pageData.sectionContent = buildAllSectionContent()
   }
 }
 
@@ -287,10 +258,11 @@ export default defineConfig({
       '<html lang="zh-CN" dir="ltr" class="dark">'
     )
   },
-  // 首页注入年份列表；年份壳页注入该年日记；首页另注入全部笔记 HTML
+  // 首页注入全部分区内容（笔记 / 日记 / 归档……）；
+  // 每个页面都注入分区导航（二级导航 + 动态 pane 的数据来源）
   transformPageData(pageData) {
-    injectIndexData(pageData)
-    injectPlanningData(pageData)
+    injectSectionContent(pageData)
+    pageData.sectionNav = sectionNav
   },
   markdown: {
     math: true,
@@ -302,7 +274,7 @@ export default defineConfig({
     nav: [
       { text: '首页', link: '/' }
     ],
-    // 全站禁用侧边栏：分类目录统一放在内容区（NoteList 卡片）。
+    // 全站禁用侧边栏：分区目录统一放在内容区（各分区共用 SectionPane 的三栏界面）。
     // 此前全局 sidebar 导致笔记/规划页渲染左侧栏（fixed 覆盖到导航区，盖住二级导航分隔线）。
     sidebar: false,
     outline: {

@@ -1,3 +1,8 @@
+<script setup lang="ts">
+// 首页分区不需要外部数据：接收并忽略 HomeNoteList 下发的 sectionKey
+defineProps<{ sectionKey?: string }>()
+</script>
+
 <template>
   <div>
     <!-- 站名横幅（原首页 hero 内容迁移至此：名字 / 副标题 / 两个入口按钮） -->
@@ -5,8 +10,8 @@
       <h1 class="hero-name">奇迹师 笔记站</h1>
       <p class="hero-text">记录学习，沉淀成长</p>
       <div class="hero-actions">
-        <a class="hero-btn brand" href="/#learning">开始阅读</a>
-        <a class="hero-btn alt" href="/#planning">人生规划</a>
+        <a class="hero-btn brand" href="/#notes">开始阅读</a>
+        <a class="hero-btn alt" href="/#diary">人生规划</a>
       </div>
     </div>
 

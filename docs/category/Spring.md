@@ -1,3 +1,0 @@
-# Spring
-
-<CategoryList name="Spring" />

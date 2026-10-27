@@ -133,7 +133,9 @@ html.dark .VPHero .tagline {
 }
 
 /* ===== 正文：代码块深色底、引用青色竖线 ===== */
-/* 行内代码：底 #0B0C0E（与代码块同色），文字用 dark-plus 正文色 #D4D4D4。
+/* 行内代码：底 #0B0C0E，文字用 dark-plus 正文色 #D4D4D4。
+   底色与页面背景 #0A0C10 几乎同色（ΔE 约 1.1），行内代码主要靠等宽字体与文字色区分，不靠底色；
+   代码块也用 #0B0C0E，两者同色是刻意保持的。
    选择器刻意与 VitePress 默认规则同形并加 html 前缀提升特异性：
    默认那条是 .vp-doc :not(pre, h1..h6) > code (0,1,2)，原先的 .vp-doc code (0,1,1)
    特异性不足、压不住它，所以行内代码一直沿用默认底色。
@@ -152,11 +154,30 @@ html .vp-doc :not(pre, h1, h2, h3, h4, h5, h6) > code {
   border-left: 4px solid var(--vp-c-brand-1);
 }
 
-/* 代码块容器：背景统一 #0B0C0E（与页面背景同色系，不额外加边框/装饰区分）。
+/* 代码块容器：底色 #0B0C0E，另加一圈半透明白色圆角边框勾勒范围。
+   底色与页面背景 #0A0C10 几乎同色（Lab 色差约 1.1、对比度 1.000:1），单靠底色看不出边界，
+   边界完全靠这条边框给出——所以边框不能省，也不能太浅。
+   边框走默认 content-box，块高 +2px；相邻代码块的 -8px 间距不变，两条边靠近但不重叠。
    全站已强制深色（config 的 appearance: 'force-dark'），故不再用 html.dark 前缀，
-   规则本身不依赖 dark 类，避免任何路径下回落到 --vp-code-block-bg。 */
+   色值直接写死，不依赖 --vp-code-block-bg，避免上游变量变化时回落到别的底色。
+
+   框线细度：1px 是浏览器能稳定渲染的最小实线（0.5px 在 1x 屏会被取整回 1px，各设备观感不一致），
+   所以「更细」靠降浓度实现。35% 白叠在 #0B0C0E 上实际为 #606162，对块底 3.16:1，
+   是一条清楚的浅色细线，不抢正文。 */
 html .vp-doc div[class*='language-'] {
   background: #0B0C0E;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 8px;
+}
+
+/* 移动端（<640px）VitePress 默认让代码块左右各外扩 24px 铺满屏幕。
+   铺满时白框的左右两条边会落到屏幕外，只剩上下两条线，看着像边框没画完。
+   这里收回外扩，让白框完整可见，与桌面端观感一致。 */
+@media (max-width: 639px) {
+  html .vp-doc div[class*='language-'] {
+    margin-left: 0;
+    margin-right: 0;
+  }
 }
 
 /* 代码块内的 code：底色强制透明，文字基准色跟随 dark-plus 前景 #D4D4D4。

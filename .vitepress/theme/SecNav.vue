@@ -1,37 +1,40 @@
 <script setup lang="ts">
-import { useRoute } from 'vitepress'
-import { sectionTab, type SectionTab } from './section'
+import { computed } from 'vue'
+import { useData, useRoute } from 'vitepress'
+import { sectionTab, HOME_KEY, navToSection } from './section'
 
 const route = useRoute()
+const { page } = useData()
 
-// 二级导航项：首页 / 笔记 / 规划
-// 「笔记」「规划」不再跳转独立页面，而是切换首页 main 容器内的 Tab
-const items: { key: SectionTab; text: string; link: string }[] = [
-  { key: 'home', text: '首页', link: '/' },
-  { key: 'learning', text: '笔记', link: '/#learning' },
-  { key: 'planning', text: '规划', link: '/#planning' }
-]
+// 分区清单由构建期扫描 docs/ 得出；首页是唯一写死的固定项
+type SectionEntry = { key: string; text: string }
+const sectionNav = computed<SectionEntry[]>(() => (page.value.sectionNav as SectionEntry[]) ?? [])
 
-// 点击二级导航：在首页就地切换 Tab（只改 Vue 状态，不跳转）；在独立页则整页跳回首页对应 Tab
-function go(item: { key: SectionTab; link: string }) {
-  const p = route.path
-  if (p !== '/' && p !== '/index.html') {
-    window.location.href = item.link
+const items = computed(() => [
+  { key: HOME_KEY, text: '首页' },
+  ...sectionNav.value.map((s) => ({ key: s.key, text: s.text }))
+])
+
+const isHome = computed(() => route.path === '/' || route.path === '/index.html')
+
+// 点击二级导航：首页内就地切换分区；独立页则整页跳回首页对应分区
+// 首页内用 navToSection 而非 setSection：让分区 pane 知道「这是从导航进来的」，回到默认视图
+function go(item: { key: string }) {
+  if (!isHome.value) {
+    window.location.href = item.key === HOME_KEY ? '/' : '/#' + item.key
     return
   }
-  sectionTab.value = item.key
+  navToSection(item.key)
 }
 
-function isActive(item: { key: SectionTab }): boolean {
-  const p = route.path
-  // 独立页（非首页）：按路径归属分区（直接访问 /notes、/planning 独立页时的兼容高亮）
-  if (p !== '/' && p !== '/index.html') {
-    if (p.startsWith('/notes')) return item.key === 'learning'
-    if (p.startsWith('/planning')) return item.key === 'planning'
-    return false
-  }
-  // 首页：由共享 Tab 状态驱动，与首页 main 容器内容联动
-  return sectionTab.value === item.key
+// 高亮判定：首页由共享 Tab 状态驱动；其他页面只看路径第一段，不回退到 sectionTab
+// （sectionTab 是首页内状态，独立页上它可能是过期残留值，不能参与判定）
+// 例：/notes/Spring/AI/x.html → 第一段 notes → 高亮「笔记」
+function isActive(item: { key: string }): boolean {
+  if (isHome.value) return sectionTab.value === item.key
+  if (item.key === HOME_KEY) return false
+  const first = route.path.replace(/^\//, '').split('/')[0].replace(/\.html$/, '')
+  return first === item.key
 }
 </script>
 
@@ -43,7 +46,7 @@ function isActive(item: { key: SectionTab }): boolean {
         :key="item.key"
         class="sec-nav-item"
         :class="{ active: isActive(item) }"
-        :href="item.link"
+        :href="item.key === HOME_KEY ? '/' : '/#' + item.key"
         @click.prevent="go(item)"
       >
         {{ item.text }}

@@ -1,22 +1,12 @@
 import DefaultTheme from 'vitepress/theme'
 import type { Theme } from 'vitepress'
 import './style.css'
-import NoteList from './NoteList.vue'
-import CategoryList from './CategoryList.vue'
 import CustomLayout from './CustomLayout.vue'
-import PlanningList from './PlanningList.vue'
-import PlanningYear from './PlanningYear.vue'
-import PasswordGuard from './PasswordGuard.vue'
 
-// 密码门不再全站包裹：仅由 PlanningYear（日记区域）按需触发
+// 分区正文化不再注册全局组件：
+// 所有分区共用 SectionPane（内部局部 import NoteView / FileTree / PasswordGuard），
+// 不为任何单个分区注册专属组件，新增文件夹无需改这里。
 export default {
   extends: DefaultTheme,
-  Layout: CustomLayout,
-  enhanceApp({ app }) {
-    app.component('NoteList', NoteList)
-    app.component('CategoryList', CategoryList)
-    app.component('PlanningList', PlanningList)
-    app.component('PlanningYear', PlanningYear)
-    app.component('PasswordGuard', PasswordGuard)
-  }
+  Layout: CustomLayout
 } satisfies Theme

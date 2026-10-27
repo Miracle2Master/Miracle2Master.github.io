@@ -1,91 +1,156 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
+import FileTree from './FileTree.vue'
 
 type Note = { title: string; key: string; html: string; order: number }
 
-const props = defineProps<{ notes: Note[]; currentKey: string }>()
+// root 语义：
+//   ''        → 作用域 = 整个分区（首页所有分区的 pane 都用这个，左栏标题取 label）
+//   'Spring/AI' → 作用域 = 指定子目录
+//   undefined → 作用域 = 当前笔记的一级目录（如 Spring）
+const props = defineProps<{
+  notes: Note[]
+  currentKey: string
+  root?: string
+  hideBack?: boolean
+  // 左栏标题：root === ''（全分区作用域）时用它；不传则显示「全部笔记」
+  label?: string
+  // 正文加锁：左栏目录照常可见可点，中栏不渲染正文、改用 #lock 占位（右栏因扫不到标题而自动隐藏）
+  locked?: boolean
+}>()
 const emit = defineEmits<{ open: [key: string]; back: [] }>()
 
 // 当前笔记
 const current = computed(() => props.notes.find((n) => n.key === props.currentKey))
-// 当前文件夹名（一级目录）
-const group = computed(() => props.currentKey.split('/')[0] ?? '')
-// 当前文件夹内全部笔记
-const groupNotes = computed(() => props.notes.filter((n) => n.key.startsWith(group.value + '/')))
+// 目录树的作用域前缀
+const prefix = computed(() => (props.root !== undefined ? props.root : props.currentKey.split('/')[0] || ''))
+// 文件夹名（作用域的最后一段）；全局作用域显示调用方给的标题
+const group = computed(() =>
+  prefix.value ? prefix.value.split('/').pop() ?? '' : props.label ?? '全部笔记'
+)
+// 作用域内全部笔记
+const groupNotes = computed(() =>
+  prefix.value ? props.notes.filter((n) => n.key.startsWith(prefix.value + '/')) : props.notes
+)
 
-// ===== 左侧目录树：把当前文件夹按「子文件夹层级」组织 =====
+// ===== 左侧目录树：把作用域内的笔记按子文件夹层级组织（任意深度） =====
 // 结构：直接文件（顶层）+ 子文件夹（每项含该子文件夹内直接文件 + 更深一层子文件夹）
 type TreeFile = { title: string; key: string }
-type SubGroup = { name: string; files: TreeFile[]; subs: SubGroup[] }
+type SubGroup = { name: string; path: string; files: TreeFile[]; subs: SubGroup[] }
 
-// 把笔记 key 相对当前文件夹的路径拆段，组装成树
 function buildTree(notes: Note[]): { rootFiles: TreeFile[]; subs: SubGroup[] } {
   const rootFiles: TreeFile[] = []
   const subs: SubGroup[] = []
 
-  const findSub = (name: string): SubGroup | undefined => subs.find((s) => s.name === name)
-
   for (const n of notes) {
-    const rel = n.key.slice(group.value.length + 1) // 去掉 "Spring/"
+    // 去掉作用域前缀；全局作用域下 key 本身就是完整相对路径
+    const rel = prefix.value ? n.key.slice(prefix.value.length + 1) : n.key
     const seg = rel.split('/')
     const file: TreeFile = { title: n.title, key: n.key }
     if (seg.length === 1) {
-      // 当前文件夹直接文件
       rootFiles.push(file)
       continue
     }
-    // 一级子文件夹
-    let sub = findSub(seg[0])
-    if (!sub) {
-      sub = { name: seg[0], files: [], subs: [] }
-      subs.push(sub)
-    }
-    if (seg.length === 2) {
-      sub.files.push(file)
-    } else {
-      // 二级子文件夹
-      let sub2 = sub.subs.find((s) => s.name === seg[1])
-      if (!sub2) {
-        sub2 = { name: seg[1], files: [], subs: [] }
-        sub.subs.push(sub2)
-      }
-      if (seg.length === 3) {
-        sub2.files.push(file)
-      } else {
-        // 更深层级：逐级下钻（通用处理）
-        let cur = sub2
-        for (let i = 2; i < seg.length - 1; i++) {
-          let next = cur.subs.find((s) => s.name === seg[i])
-          if (!next) {
-            next = { name: seg[i], files: [], subs: [] }
-            cur.subs.push(next)
-          }
-          cur = next
+    // 逐级下钻，任意深度都支持
+    let list = subs
+    for (let i = 0; i < seg.length - 1; i++) {
+      let next = list.find((s) => s.name === seg[i])
+      if (!next) {
+        next = {
+          name: seg[i],
+          // 完整相对路径：不同层级的同名文件夹（如 a/img 与 b/img）不能共用一个展开状态
+          path: seg.slice(0, i + 1).join('/'),
+          files: [],
+          subs: []
         }
-        cur.files.push(file)
+        list.push(next)
       }
+      if (i === seg.length - 2) next.files.push(file)
+      list = next.subs
     }
   }
 
-  // 子文件夹内排序（保持文件顺序，组按文件夹名）
-  const sortFiles = (files: TreeFile[]) =>
-    files.sort((a, b) => a.title.localeCompare(b.title, 'zh-CN'))
-  const sortSubs = (list: SubGroup[]) => list.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'))
-
+  // 排序递归到任意深度（不要写死到第几层，层级变深时会漏排）
+  const sortFiles = (files: TreeFile[]) => files.sort((a, b) => a.title.localeCompare(b.title, 'zh-CN'))
+  const sortList = (list: SubGroup[]) => {
+    list.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'))
+    for (const s of list) {
+      sortFiles(s.files)
+      sortList(s.subs)
+    }
+  }
   sortFiles(rootFiles)
-  sortSubs(subs)
-  for (const s of subs) {
-    sortFiles(s.files)
-    sortSubs(s.subs)
-    for (const s2 of s.subs) {
-      sortFiles(s2.files)
-      sortSubs(s2.subs)
-    }
-  }
+  sortList(subs)
   return { rootFiles, subs }
 }
 
 const tree = computed(() => buildTree(groupNotes.value))
+
+// ===== 文件夹展开 / 收起 =====
+// 默认全部收起（左栏只看到一级文件夹名）。
+// 展开状态记「相对作用域根的完整路径」，只存文件夹名会让不同层级的同名文件夹串台。
+
+// 当前笔记的各级父文件夹路径：初始就展开它们，否则首屏左栏里看不到正在读的这篇
+const ancestorPaths = computed(() => {
+  const key = props.currentKey
+  if (!key) return []
+  const rel = prefix.value ? key.slice(prefix.value.length + 1) : key
+  // 最后一段是文件名，只取目录部分
+  const dirs = rel.split('/').slice(0, -1)
+  return dirs.map((_, i) => dirs.slice(0, i + 1).join('/'))
+})
+
+// 初始化即带上当前笔记的祖先（SSR 阶段也能拿到 currentKey，首屏就是对的）
+const expanded = ref<string[]>([...ancestorPaths.value])
+
+// 换到别处的笔记 → 自动展开它的各级父文件夹（用户手动收起的状态保留）
+watch(() => props.currentKey, () => {
+  const set = new Set(expanded.value)
+  for (const p of ancestorPaths.value) set.add(p)
+  expanded.value = [...set]
+})
+
+// 作用域切换（点别的分区 / 目录树根变了）→ 只保留新作用域里当前笔记的祖先，
+// 否则上一个作用域的路径会残留在新作用域里（路径空间不同，留着会串台）
+watch(prefix, () => {
+  expanded.value = [...ancestorPaths.value]
+})
+
+// 当前作用域里的全部文件夹路径（供「全部展开 / 全部收起」使用）
+const allPaths = computed(() => {
+  const out: string[] = []
+  const walkNodes = (list: SubGroup[]) => {
+    for (const s of list) {
+      out.push(s.path)
+      walkNodes(s.subs)
+    }
+  }
+  walkNodes(tree.value.subs)
+  return out
+})
+
+// 是否处于「已全部收起」状态：除当前笔记的祖先链外，没有任何文件夹是展开的。
+// 用这个而不是「全部展开了吗」来判断按钮语义——因为祖先链是自动展开的，
+// 若按「全部展开」判定，收起到只剩祖先链时按钮会错误地显示「全部收起」而点不动。
+const allCollapsed = computed(() =>
+  allPaths.value.every((p) => !expanded.value.includes(p) || ancestorPaths.value.includes(p))
+)
+
+function toggleFolder(path: string) {
+  // 当前笔记所在的祖先链展开着才看得到选中项：允许收起，
+  // 但收起后再点「全部展开」或切换笔记就会恢复，所以这里不做拦截，保持操作直观。
+  const set = new Set(expanded.value)
+  if (set.has(path)) set.delete(path)
+  else set.add(path)
+  expanded.value = [...set]
+}
+
+function toggleAll() {
+  // 两种稳定状态之间切换：
+  //   全部收起（只剩当前笔记的祖先链）→ 全部展开
+  //   其它任何状态（含手动展开过几个）      → 全部收起，只保留祖先链
+  expanded.value = allCollapsed.value ? [...allPaths.value] : [...ancestorPaths.value]
+}
 
 // ===== 右侧：当前文件标题目录（扫描 v-html 渲染后的标题） =====
 const contentRef = ref<HTMLElement | null>(null)
@@ -114,7 +179,8 @@ async function rescan() {
   window.scrollTo({ top: 0, behavior: 'auto' })
 }
 
-watch(() => props.currentKey, rescan)
+// 换篇 / 解锁（locked 由 true 变 false）都要重扫标题：解锁后右栏才有内容
+watch([() => props.currentKey, () => props.locked], rescan)
 onMounted(rescan)
 
 // 正文吸顶偏移：页面滚动时标题要停的位置 = 顶部固定区下沿 + 40px 间隙。
@@ -168,55 +234,38 @@ onUnmounted(() => io?.disconnect())
 
 <template>
   <div class="note-view">
-    <!-- 左侧：文件夹内文件目录（按子文件夹层级展示） -->
+    <!-- 左侧：文件夹内文件目录（按子文件夹层级展示，递归任意深度） -->
     <aside class="note-file-nav">
-      <button class="back-btn" @click="emit('back')">← 返回全部</button>
-      <h2 class="file-nav-title">{{ group }}</h2>
-
-      <!-- 当前文件夹直接文件 -->
-      <ul v-if="tree.rootFiles.length" class="file-nav-list">
-        <li v-for="n in tree.rootFiles" :key="n.key">
-          <button
-            class="file-nav-item"
-            :class="{ current: n.key === currentKey }"
-            @click="emit('open', n.key)"
-          >{{ n.title }}</button>
-        </li>
-      </ul>
-
-      <!-- 一级子文件夹 -->
-      <div v-for="sub in tree.subs" :key="sub.name" class="file-nav-sub">
-        <div class="file-nav-sub-title">{{ sub.name }}</div>
-        <ul class="file-nav-list">
-          <li v-for="n in sub.files" :key="n.key">
-            <button
-              class="file-nav-item"
-              :class="{ current: n.key === currentKey }"
-              @click="emit('open', n.key)"
-            >{{ n.title }}</button>
-          </li>
-        </ul>
-
-        <!-- 二级子文件夹 -->
-        <div v-for="sub2 in sub.subs" :key="sub2.name" class="file-nav-sub file-nav-sub-2">
-          <div class="file-nav-sub-title">{{ sub2.name }}</div>
-          <ul class="file-nav-list">
-            <li v-for="n in sub2.files" :key="n.key">
-              <button
-                class="file-nav-item"
-                :class="{ current: n.key === currentKey }"
-                @click="emit('open', n.key)"
-              >{{ n.title }}</button>
-            </li>
-          </ul>
-        </div>
+      <button v-if="!hideBack" class="back-btn" @click="emit('back')">← 返回全部</button>
+      <!-- 标题行：左边是作用域名，右边是全部展开/收起 -->
+      <div class="file-nav-head">
+        <h2 class="file-nav-title">{{ group }}</h2>
+        <button
+          v-if="allPaths.length"
+          class="expand-all-btn"
+          type="button"
+          @click="toggleAll"
+        >{{ allCollapsed ? '全部展开' : '全部收起' }}</button>
       </div>
+
+      <FileTree
+        :root-files="tree.rootFiles"
+        :subs="tree.subs"
+        :current-key="currentKey"
+        :expanded="expanded"
+        @open="(key: string) => emit('open', key)"
+        @toggle="toggleFolder"
+      />
     </aside>
 
     <!-- 中间：当前笔记正文 -->
     <!-- ref 绑在正文容器上，仅用于扫描标题 / 定位目标（正文本身不自建滚动容器） -->
     <div ref="contentRef" class="note-body">
-      <article class="vp-doc" v-html="current?.html ?? ''"></article>
+      <!-- 加锁时只换正文，左栏目录与点击行为完全不变；右栏因扫不到标题自动隐藏 -->
+      <slot v-if="locked" name="lock" />
+      <!-- 分区为空（如 docs/archive/ 只有 .gitkeep）：保留三栏骨架，中栏给提示，不白屏 -->
+      <p v-else-if="!notes.length" class="note-empty">该分区暂无内容。</p>
+      <article v-else class="vp-doc" v-html="current?.html ?? ''"></article>
     </div>
 
     <!-- 右侧：当前文件标题目录 -->
@@ -296,80 +345,34 @@ onUnmounted(() => io?.disconnect())
   color: var(--note-accent);
 }
 
-.file-nav-list {
-  list-style: none;
-  padding-left: 0;
-  margin: 0;
+/* 标题行：作用域名与「全部展开」同一行，按钮靠右 */
+.file-nav-head {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.file-nav-list li {
-  margin: 0;
+/* 全部展开 / 全部收起：纯文字小按钮，不抢标题的视觉重量 */
+.expand-all-btn {
+  flex: none;
   padding: 0;
-}
-
-/* 子文件夹分组：与上一组保持距离 */
-.file-nav-sub {
-  margin-top: 16px;
-}
-
-/* 二级子文件夹：再缩进一层 */
-.file-nav-sub-2 {
-  margin-top: 8px;
-  padding-left: 12px;
-  border-left: 1px solid var(--vp-c-divider);
-}
-
-/* 子文件夹标题：突出显示 */
-.file-nav-sub-title {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--note-accent);
-  letter-spacing: 0.5px;
-  padding: 2px 12px 6px;
-  margin-bottom: 4px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-/* 子文件夹标题前的层级小箭头 */
-.file-nav-sub-title::before {
-  content: '▸';
-  font-size: 11px;
-  color: var(--note-accent);
-}
-
-.file-nav-item {
-  display: block;
-  width: 100%;
-  text-align: left;
-  padding: 8px 12px;
-  font-size: 14px;
+  font-size: 12px;
   font-family: inherit;
   line-height: 1.6;
-  color: var(--vp-c-text-2);
+  color: var(--vp-c-text-3);
   background: transparent;
   border: none;
-  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: color 0.2s ease;
 }
 
-.file-nav-item:hover {
-  background: var(--note-active-bg);
+.expand-all-btn:hover {
   color: var(--note-accent);
 }
 
-.file-nav-item.current {
-  background: var(--note-active-bg);
-  color: var(--note-accent);
-  font-weight: 600;
-  /* 选中项左侧竖条：与选中字色一致 */
-  box-shadow: inset 3px 0 0 var(--note-accent);
-}
+/* 左侧目录树（.file-nav-list / .file-nav-sub / .file-nav-item 等）已移到 FileTree.vue，
+   因为它现在是递归组件，样式必须跟着组件走 */
 
 /* ===== 中间：正文 ===== */
 /* 正文走正常文档流，是页面高度的唯一来源（无 max-height / 无 overflow）：
@@ -382,6 +385,13 @@ onUnmounted(() => io?.disconnect())
 
 .note-body :deep(.vp-doc) {
   max-width: 100%;
+}
+
+/* 空分区提示：中栏居中的一句话，保持三栏骨架不变 */
+.note-empty {
+  padding: 48px 0;
+  text-align: center;
+  color: var(--vp-c-text-3);
 }
 
 /* ===== 右侧：标题目录（右起点不动，窄一点，隐藏滚动条） ===== */

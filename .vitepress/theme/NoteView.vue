@@ -2,7 +2,8 @@
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import FileTree from './FileTree.vue'
 
-type Note = { title: string; key: string; html: string; order: number }
+// intro 是分区封面（frontmatter intro: true）：能进来默认展示，但不进左栏目录树
+type Note = { title: string; key: string; html: string; order: number; intro?: boolean }
 
 // root 语义：
 //   ''        → 作用域 = 整个分区（首页所有分区的 pane 都用这个，左栏标题取 label）
@@ -43,6 +44,9 @@ function buildTree(notes: Note[]): { rootFiles: TreeFile[]; subs: SubGroup[] } {
   const subs: SubGroup[] = []
 
   for (const n of notes) {
+    // 分区封面不进目录树：它是「进来就看的那篇」，不是可浏览的条目。
+    // 正文照常可读，只是左栏不列它；当前选中态也不会出现在左栏（这是预期行为）。
+    if (n.intro) continue
     // 去掉作用域前缀；全局作用域下 key 本身就是完整相对路径
     const rel = prefix.value ? n.key.slice(prefix.value.length + 1) : n.key
     const seg = rel.split('/')

@@ -116,14 +116,33 @@ const sectionNav = buildSections()
 //   notes → 'Spring/AI/xxx'
 //   diary → '目标与方向'、'日记/2026/10月'
 // 只有 notes/ 与 diary/ 里存在独立页竞争，但两边各自独立，key 不会互相污染。
-type SectionEntryData = { title: string; key: string; html: string; order: number }
+
+// 没有 frontmatter order 的笔记统一用这个值，排在所有显式 order 之后
+const MAX_ORDER = Number.MAX_SAFE_INTEGER
+type SectionEntryData = {
+  title: string
+  key: string
+  html: string
+  order: number
+  // 分区封面：强制排第一（进来默认展示这篇），但不出现在左栏目录树里
+  intro: boolean
+}
 
 // frontmatter order；没有就排到最后
 function orderOf(raw: string): number {
   const fm = raw.match(/^---\s*\n([\s\S]*?)\n---/)
-  if (!fm) return Number.MAX_SAFE_INTEGER
+  if (!fm) return MAX_ORDER
   const m = fm[1].match(/order\s*:\s*(\d+)/)
-  return m ? parseInt(m[1], 10) : Number.MAX_SAFE_INTEGER
+  return m ? parseInt(m[1], 10) : MAX_ORDER
+}
+
+// frontmatter intro: true / false；没有按 false。
+// 注意 orderOf 的正则是 \d+，不认负号——写 order: -1 会被当成「没写」而排到最后，
+// 所以「排第一」统一靠 intro 表达，不要再依赖 order: 0 这种约定。
+function introOf(raw: string): boolean {
+  const fm = raw.match(/^---\s*\n([\s\S]*?)\n---/)
+  if (!fm) return false
+  return /^\s*intro\s*:\s*true\s*$/m.test(fm[1])
 }
 
 // 单个分区：遍历 docs/<section>/ 下全部 md（任意深度），构建期渲染成 HTML
@@ -131,7 +150,7 @@ function orderOf(raw: string): number {
 function buildSectionContent(sectionKey: string): SectionEntryData[] {
   const sectionDir = join(docsDir, sectionKey)
   if (!existsSync(sectionDir) || !statSync(sectionDir).isDirectory()) return []
-  const slots: { title: string; key: string; html: string; order: number }[] = []
+  const slots: SectionEntryData[] = []
   for (const file of walk(sectionDir)) {
     const rel = relative(sectionDir, file).replace(/\\/g, '/')
     const raw = readFileSync(file, 'utf-8')
@@ -143,12 +162,16 @@ function buildSectionContent(sectionKey: string): SectionEntryData[] {
       title: rel.split('/').pop()!.replace(/\.md$/, ''),
       key,
       html: rewriteImgSrcs(md.render(body), relDir, sectionDir),
-      order: orderOf(raw)
+      order: orderOf(raw),
+      intro: introOf(raw)
     })
   }
-  slots.sort(
-    (a, b) => a.order - b.order || a.key.localeCompare(b.key, 'zh-CN', { numeric: true })
-  )
+  // 排序：intro 永远第一（进来默认展示的就是它）；
+  // 其余按 order 升序，order 相同再按 key 排序。
+  slots.sort((a, b) => {
+    if (a.intro !== b.intro) return a.intro ? -1 : 1
+    return a.order - b.order || a.key.localeCompare(b.key, 'zh-CN', { numeric: true })
+  })
   return slots
 }
 

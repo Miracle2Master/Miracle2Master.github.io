@@ -12,7 +12,7 @@ order: 45
 
 单机的Redis存在四大问题：
 
-![image-20210725144240631](assets/image-20210725144240631.png)
+![image-20210725144240631](assets/image-20210725144240631.webp)
 
 
 
@@ -42,7 +42,7 @@ RDB持久化在四种情况下会执行：
 
 执行下面的命令，可以立即执行一次RDB：
 
-![image-20210725144536958](assets/image-20210725144536958.png)
+![image-20210725144536958](assets/image-20210725144536958.webp)
 
 save命令会导致主进程执行RDB，这个过程中其它所有命令都会被阻塞。只有在数据迁移时可能用到。
 
@@ -50,7 +50,7 @@ save命令会导致主进程执行RDB，这个过程中其它所有命令都会�
 
 下面的命令可以异步执行RDB：
 
-![image-20210725144725943](assets/image-20210725144725943.png)
+![image-20210725144725943](assets/image-20210725144725943.webp)
 
 这个命令执行后会开启独立进程完成RDB，主进程可以持续处理用户请求，不受影响。
 
@@ -91,7 +91,7 @@ fork采用的是copy-on-write技术：
 - 当主进程执行读操作时，访问共享内存；
 - 当主进程执行写操作时，则会拷贝一份数据，执行写操作。
 
-![image-20210725151319695](assets/image-20210725151319695.png)
+![image-20210725151319695](assets/image-20210725151319695.webp)
 
 ### 1.1.3 小结
 
@@ -117,7 +117,7 @@ RDB的缺点？
 
 AOF全称为Append Only File（追加文件）。Redis处理的每一个写命令都会记录在AOF文件，可以看做是命令日志文件。
 
-![image-20210725151543640](assets/image-20210725151543640.png)
+![image-20210725151543640](assets/image-20210725151543640.webp)
 
 ### 1.2.2 AOF配置
 
@@ -147,7 +147,7 @@ appendfsync no
 
 三种策略对比：
 
-![image-20210725151654046](assets/image-20210725151654046.png)
+![image-20210725151654046](assets/image-20210725151654046.webp)
 
 
 
@@ -155,7 +155,7 @@ appendfsync no
 
 因为是记录命令，AOF文件会比RDB文件大的多。而且AOF会记录对同一个key的多次写操作，但只有最后一次写操作才有意义。通过执行bgrewriteaof命令，可以让AOF文件执行重写功能，用最少的命令达到相同效果。
 
-![image-20210725151729118](assets/image-20210725151729118.png)
+![image-20210725151729118](assets/image-20210725151729118.webp)
 
 如图，AOF原本有三个命令，但是`set num 123 和 set num 666`都是对num的操作，第二次会覆盖第一次的值，因此第一个命令记录下来没有意义。
 
@@ -178,7 +178,7 @@ auto-aof-rewrite-min-size 64mb
 
 RDB和AOF各有自己的优缺点，如果对数据安全性要求较高，在实际开发中往往会**结合**两者来使用。
 
-![image-20210725151940515](assets/image-20210725151940515.png)
+![image-20210725151940515](assets/image-20210725151940515.webp)
 
 
 
@@ -188,7 +188,7 @@ RDB和AOF各有自己的优缺点，如果对数据安全性要求较高，在�
 
 单节点Redis的并发能力是有上限的，要进一步提高Redis的并发能力，就需要搭建主从集群，实现读写分离。
 
-![image-20210725152037611](assets/image-20210725152037611.png)
+![image-20210725152037611](assets/image-20210725152037611.webp)
 
 ## 2.2 主从数据同步原理
 
@@ -196,7 +196,7 @@ RDB和AOF各有自己的优缺点，如果对数据安全性要求较高，在�
 
 主从第一次建立连接时，会执行**全量同步**，将master节点的所有数据都拷贝给slave节点，流程：
 
-![image-20210725152222497](assets/image-20210725152222497.png)
+![image-20210725152222497](assets/image-20210725152222497.webp)
 
 
 
@@ -221,7 +221,7 @@ master会将自己的replid和offset都发送给这个slave，slave保存这些�
 
 如图：
 
-![image-20210725152700914](assets/image-20210725152700914.png)
+![image-20210725152700914](assets/image-20210725152700914.webp)
 
 
 
@@ -242,7 +242,7 @@ master会将自己的replid和offset都发送给这个slave，slave保存这些�
 
 什么是增量同步？就是只更新slave与master存在差异的部分数据。如图：
 
-![image-20210725153201086](assets/image-20210725153201086.png)
+![image-20210725153201086](assets/image-20210725153201086.webp)
 
 
 
@@ -260,19 +260,19 @@ master怎么知道slave与自己的数据差异在哪里呢?
 
 repl_baklog中会记录Redis处理过的命令日志及offset，包括master当前的offset，和slave已经拷贝到的offset：
 
-![image-20210725153359022](assets/image-20210725153359022.png) 
+![image-20210725153359022](assets/image-20210725153359022.webp) 
 
 slave与master的offset之间的差异，就是salve需要增量拷贝的数据了。
 
 随着不断有数据写入，master的offset逐渐变大，slave也不断的拷贝，追赶master的offset：
 
-![image-20210725153524190](assets/image-20210725153524190.png) 
+![image-20210725153524190](assets/image-20210725153524190.webp) 
 
 
 
 直到数组被填满：
 
-![image-20210725153715910](assets/image-20210725153715910.png) 
+![image-20210725153715910](assets/image-20210725153715910.webp) 
 
 此时，如果有新的数据写入，就会覆盖数组中的旧数据。不过，旧的数据只要是绿色的，说明是已经被同步到slave的数据，即便被覆盖了也没什么影响。因为未同步的仅仅是红色部分。
 
@@ -280,17 +280,17 @@ slave与master的offset之间的差异，就是salve需要增量拷贝的数据�
 
 但是，如果slave出现网络阻塞，导致master的offset远远超过了slave的offset： 
 
-![image-20210725153937031](assets/image-20210725153937031.png) 
+![image-20210725153937031](assets/image-20210725153937031.webp) 
 
 如果master继续写入新数据，其offset就会覆盖旧的数据，直到将slave现在的offset也覆盖：
 
-![image-20210725154155984](assets/image-20210725154155984.png) 
+![image-20210725154155984](assets/image-20210725154155984.webp) 
 
 
 
 棕色框中的红色部分，就是尚未同步，但是却已经被覆盖的数据。此时如果slave恢复，需要同步，却发现自己的offset都没有了，无法完成增量同步了。只能做全量同步。
 
-![image-20210725154216392](assets/image-20210725154216392.png)
+![image-20210725154216392](assets/image-20210725154216392.webp)
 
 
 
@@ -309,7 +309,7 @@ slave与master的offset之间的差异，就是salve需要增量拷贝的数据�
 
 主从从架构图：
 
-![image-20210725154405899](assets/image-20210725154405899.png)
+![image-20210725154405899](assets/image-20210725154405899.webp)
 
 
 
@@ -343,7 +343,7 @@ Redis提供了哨兵（Sentinel）机制来实现主从集群的自动故障恢�
 
 哨兵的结构如图：
 
-![image-20210725154528072](assets/image-20210725154528072.png)
+![image-20210725154528072](assets/image-20210725154528072.webp)
 
 哨兵的作用如下：
 
@@ -361,7 +361,7 @@ Sentinel基于心跳机制监测服务状态，每隔1秒向集群的每个实�
 
 •客观下线：若超过指定数量（quorum）的sentinel都认为该实例主观下线，则该实例**客观下线**。quorum值最好超过Sentinel实例数量的一半。
 
-![image-20210725154632354](assets/image-20210725154632354.png)
+![image-20210725154632354](assets/image-20210725154632354.webp)
 
 
 
@@ -386,7 +386,7 @@ Sentinel基于心跳机制监测服务状态，每隔1秒向集群的每个实�
 
 
 
-![image-20210725154816841](assets/image-20210725154816841.png)
+![image-20210725154816841](assets/image-20210725154816841.webp)
 
 
 
@@ -423,7 +423,7 @@ Sentinel如何判断一个redis实例是否健康？
 
 具体搭建流程参考课前资料《Redis集群.md》：
 
-![image-20210725155019276](assets/image-20210725155019276.png) 
+![image-20210725155019276](assets/image-20210725155019276.webp) 
 
 
 
@@ -437,7 +437,7 @@ Sentinel如何判断一个redis实例是否健康？
 
 首先，我们引入课前资料提供的Demo工程：
 
-![image-20210725155124958](assets/image-20210725155124958.png) 
+![image-20210725155124958](assets/image-20210725155124958.webp) 
 
 
 
@@ -509,7 +509,7 @@ public LettuceClientConfigurationBuilderCustomizer clientConfigurationBuilderCus
 
 使用分片集群可以解决上述问题，如图:
 
-![image-20210725155747294](assets/image-20210725155747294.png)
+![image-20210725155747294](assets/image-20210725155747294.webp)
 
 
 
@@ -527,7 +527,7 @@ public LettuceClientConfigurationBuilderCustomizer clientConfigurationBuilderCus
 
 具体搭建流程参考课前资料《Redis集群.md》：
 
-![image-20210725155806288](assets/image-20210725155806288.png) 
+![image-20210725155806288](assets/image-20210725155806288.webp) 
 
 
 
@@ -537,7 +537,7 @@ public LettuceClientConfigurationBuilderCustomizer clientConfigurationBuilderCus
 
 Redis会把每一个master节点映射到0~16383共16384个插槽（hash slot）上，查看集群信息时就能看到：
 
-![image-20210725155820320](assets/image-20210725155820320.png)
+![image-20210725155820320](assets/image-20210725155820320.webp)
 
 
 
@@ -552,7 +552,7 @@ Redis会把每一个master节点映射到0~16383共16384个插槽（hash slot）
 
 例如：key是num，那么就根据num计算，如果是{itcast}num，则根据itcast计算。计算方式是利用CRC16算法得到一个hash值，然后对16384取余，得到的结果就是slot值。
 
-![image-20210725155850200](assets/image-20210725155850200.png) 
+![image-20210725155850200](assets/image-20210725155850200.webp) 
 
 如图，在7001这个节点执行set a 1时，对a做hash运算，对16384取余，得到的结果是15495，因此要存储到103节点。
 
@@ -582,11 +582,11 @@ Redis如何判断某个key应该在哪个实例？
 
 redis-cli --cluster提供了很多操作集群的命令，可以通过下面方式查看：
 
-![image-20210725160138290](assets/image-20210725160138290.png)
+![image-20210725160138290](assets/image-20210725160138290.webp)
 
 比如，添加节点的命令：
 
-![image-20210725160448139](assets/image-20210725160448139.png)
+![image-20210725160448139](assets/image-20210725160448139.webp)
 
 
 
@@ -639,7 +639,7 @@ redis-server 7004/redis.conf
 
 添加节点的语法如下：
 
-![image-20210725160448139](assets/image-20210725160448139.png)
+![image-20210725160448139](assets/image-20210725160448139.webp)
 
 
 
@@ -661,7 +661,7 @@ redis-cli -p 7001 cluster nodes
 
 如图，7004加入了集群，并且默认是一个master节点：
 
-![image-20210725161007099](assets/image-20210725161007099.png)
+![image-20210725161007099](assets/image-20210725161007099.webp)
 
 但是，可以看到7004节点的插槽数量为0，因此没有任何数据可以存储到7004上
 
@@ -671,7 +671,7 @@ redis-cli -p 7001 cluster nodes
 
 我们要将num存储到7004节点，因此需要先看看num的插槽是多少：
 
-![image-20210725161241793](assets/image-20210725161241793.png)
+![image-20210725161241793](assets/image-20210725161241793.webp)
 
 如上图所示，num的插槽为2765.
 
@@ -679,7 +679,7 @@ redis-cli -p 7001 cluster nodes
 
 我们可以将0~3000的插槽从7001转移到7004，命令格式如下：
 
-![image-20210725161401925](assets/image-20210725161401925.png)
+![image-20210725161401925](assets/image-20210725161401925.webp)
 
 
 
@@ -687,11 +687,11 @@ redis-cli -p 7001 cluster nodes
 
 建立连接：
 
-![image-20210725161506241](assets/image-20210725161506241.png)
+![image-20210725161506241](assets/image-20210725161506241.webp)
 
 得到下面的反馈：
 
-![image-20210725161540841](assets/image-20210725161540841.png)
+![image-20210725161540841](assets/image-20210725161540841.webp)
 
 
 
@@ -699,17 +699,17 @@ redis-cli -p 7001 cluster nodes
 
 新的问题来了：
 
-![image-20210725161637152](assets/image-20210725161637152.png)
+![image-20210725161637152](assets/image-20210725161637152.webp)
 
 那个node来接收这些插槽？？
 
 显然是7004，那么7004节点的id是多少呢？
 
-![image-20210725161731738](assets/image-20210725161731738.png)
+![image-20210725161731738](assets/image-20210725161731738.webp)
 
 复制这个id，然后拷贝到刚才的控制台后：
 
-![image-20210725161817642](assets/image-20210725161817642.png)
+![image-20210725161817642](assets/image-20210725161817642.webp)
 
 这里询问，你的插槽是从哪里移动过来的？
 
@@ -721,21 +721,21 @@ redis-cli -p 7001 cluster nodes
 
 这里我们要从7001获取，因此填写7001的id：
 
-![image-20210725162030478](assets/image-20210725162030478.png)
+![image-20210725162030478](assets/image-20210725162030478.webp)
 
 填完后，点击done，这样插槽转移就准备好了：
 
-![image-20210725162101228](assets/image-20210725162101228.png)
+![image-20210725162101228](assets/image-20210725162101228.webp)
 
 确认要转移吗？输入yes：
 
 然后，通过命令查看结果：
 
-![image-20210725162145497](assets/image-20210725162145497.png) 
+![image-20210725162145497](assets/image-20210725162145497.webp) 
 
 可以看到： 
 
-![image-20210725162224058](assets/image-20210725162224058.png)
+![image-20210725162224058](assets/image-20210725162224058.webp)
 
 目的达成。
 
@@ -747,7 +747,7 @@ redis-cli -p 7001 cluster nodes
 
 集群初识状态是这样的：
 
-![image-20210727161152065](assets/image-20210727161152065.png)
+![image-20210727161152065](assets/image-20210727161152065.webp)
 
 其中7001、7002、7003都是master，我们计划让7002宕机。
 
@@ -769,15 +769,15 @@ redis-cli -p 7002 shutdown
 
 2）然后是疑似宕机：
 
-![image-20210725162319490](assets/image-20210725162319490.png)
+![image-20210725162319490](assets/image-20210725162319490.webp)
 
 3）最后是确定下线，自动提升一个slave为新的master：
 
-![image-20210725162408979](assets/image-20210725162408979.png)
+![image-20210725162408979](assets/image-20210725162408979.webp)
 
 4）当7002再次启动，就会变为一个slave节点了：
 
-![image-20210727160803386](assets/image-20210727160803386.png)
+![image-20210727160803386](assets/image-20210727160803386.webp)
 
 
 
@@ -785,7 +785,7 @@ redis-cli -p 7002 shutdown
 
 利用cluster failover命令可以手动让集群中的某个master宕机，切换到执行cluster failover命令的这个slave节点，实现无感知的数据迁移。其流程如下：
 
-![image-20210725162441407](assets/image-20210725162441407.png)
+![image-20210725162441407](assets/image-20210725162441407.webp)
 
 
 
@@ -807,13 +807,13 @@ redis-cli -p 7002 shutdown
 
 如图：
 
-![image-20210727160037766](assets/image-20210727160037766.png)
+![image-20210727160037766](assets/image-20210727160037766.webp)
 
 
 
 效果：
 
-![image-20210727161152065](assets/image-20210727161152065.png)
+![image-20210727161152065](assets/image-20210727161152065.webp)
 
 
 

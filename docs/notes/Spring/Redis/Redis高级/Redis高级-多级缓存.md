@@ -10,7 +10,7 @@ order: 44
 
 传统的缓存策略一般是请求到达Tomcat后，先查询Redis，如果未命中则查询数据库，如图：
 
-![image-20210821075259137](assets/image-20210821075259137.png)
+![image-20210821075259137](assets/image-20210821075259137.webp)
 
 存在下面的问题：
 
@@ -30,7 +30,7 @@ order: 44
 - 请求进入Tomcat后，优先查询JVM进程缓存
 - 如果JVM进程缓存未命中，则查询数据库
 
-![image-20210821075558137](assets/image-20210821075558137.png)
+![image-20210821075558137](assets/image-20210821075558137.webp)
 
 
 
@@ -40,13 +40,13 @@ order: 44
 
 因此这样的业务Nginx服务也需要搭建集群来提高并发，再有专门的nginx服务来做反向代理，如图：
 
-![image-20210821080511581](assets/image-20210821080511581.png)
+![image-20210821080511581](assets/image-20210821080511581.webp)
 
 
 
 另外，我们的Tomcat服务将来也会部署为集群模式：
 
-![image-20210821080954947](assets/image-20210821080954947.png)
+![image-20210821080954947](assets/image-20210821080954947.webp)
 
 
 
@@ -74,7 +74,7 @@ order: 44
 
 参考课前资料的：《案例导入说明.md》
 
-![image-20210821081418456](assets/image-20210821081418456.png) 
+![image-20210821081418456](assets/image-20210821081418456.webp) 
 
 
 
@@ -99,7 +99,7 @@ order: 44
 
 Caffeine的性能非常好，下图是官方给出的性能对比：
 
-![image-20210821081826399](assets/image-20210821081826399.png)
+![image-20210821081826399](assets/image-20210821081826399.webp)
 
 可以看到Caffeine的性能遥遥领先！
 
@@ -266,7 +266,7 @@ Nginx编程需要用到Lua语言，因此我们必须先入门Lua的基本语法
 
 Lua 是一种轻量小巧的脚本语言，用标准C语言编写并以源代码形式开放， 其设计目的是为了嵌入应用程序中，从而为应用程序提供灵活的扩展和定制功能。官网：https://www.lua.org/
 
-![image-20210821091437975](assets/image-20210821091437975.png)
+![image-20210821091437975](assets/image-20210821091437975.webp)
 
 
 
@@ -282,7 +282,7 @@ CentOS7默认已经安装了Lua语言环境，所以可以直接运行Lua代码�
 
 1）在Linux虚拟机的任意目录下，新建一个hello.lua文件
 
-![image-20210821091621308](assets/image-20210821091621308.png)
+![image-20210821091621308](assets/image-20210821091621308.webp)
 
 2）添加下面的内容
 
@@ -294,7 +294,7 @@ print("Hello World!")
 
 3）运行
 
-![image-20210821091638140](assets/image-20210821091638140.png)
+![image-20210821091638140](assets/image-20210821091638140.webp)
 
 
 
@@ -306,11 +306,11 @@ print("Hello World!")
 
 Lua中支持的常见数据类型包括：
 
-![image-20210821091835406](assets/image-20210821091835406.png)
+![image-20210821091835406](assets/image-20210821091835406.webp)
 
 另外，Lua提供了type()函数来判断一个变量的数据类型：
 
-![image-20210821091904332](assets/image-20210821091904332.png)
+![image-20210821091904332](assets/image-20210821091904332.webp)
 
 ### 3.2.2 声明变量
 
@@ -434,7 +434,7 @@ end
 
 与java不同，布尔表达式中的逻辑运算是基于英文单词：
 
-![image-20210821092657918](assets/image-20210821092657918.png)
+![image-20210821092657918](assets/image-20210821092657918.webp)
 
 
 
@@ -475,13 +475,13 @@ OpenResty® 是一个基于 Nginx的高性能 Web 平台，用于方便地搭建
 
 官方网站： https://openresty.org/cn/
 
-![image-20210821092902946](assets/image-20210821092902946.png)
+![image-20210821092902946](assets/image-20210821092902946.webp)
 
 
 
 安装Lua可以参考课前资料提供的《安装OpenResty.md》：
 
-![image-20210821092941139](assets/image-20210821092941139.png) 
+![image-20210821092941139](assets/image-20210821092941139.webp) 
 
 
 
@@ -491,7 +491,7 @@ OpenResty® 是一个基于 Nginx的高性能 Web 平台，用于方便地搭建
 
 我们希望达到的多级缓存架构如图：
 
-![yeVDlwtfMx](assets/yeVDlwtfMx.png)
+![yeVDlwtfMx](assets/yeVDlwtfMx.webp)
 
 其中：
 
@@ -507,11 +507,11 @@ OpenResty® 是一个基于 Nginx的高性能 Web 平台，用于方便地搭建
 
 这个请求如下：
 
-![image-20210821093144700](assets/image-20210821093144700.png)
+![image-20210821093144700](assets/image-20210821093144700.webp)
 
 请求地址是localhost，端口是80，就被windows上安装的Nginx服务给接收到了。然后代理给了OpenResty集群：
 
-![image-20210821094447709](assets/image-20210821094447709.png)
+![image-20210821094447709](assets/image-20210821094447709.webp)
 
 我们需要在OpenResty中编写业务，查询商品数据并返回到浏览器。
 
@@ -561,11 +561,11 @@ location  /api/item {
 
 1）在`/usr/loca/openresty/nginx`目录创建文件夹：lua
 
-![image-20210821100755080](assets/image-20210821100755080.png)
+![image-20210821100755080](assets/image-20210821100755080.webp)
 
 2）在`/usr/loca/openresty/nginx/lua`文件夹下，新建文件：item.lua
 
-![image-20210821100801756](assets/image-20210821100801756.png)
+![image-20210821100801756](assets/image-20210821100801756.webp)
 
 
 
@@ -589,7 +589,7 @@ nginx -s reload
 
 刷新商品页面：http://localhost/item.html?id=1001，即可看到效果：
 
-![image-20210821101217089](assets/image-20210821101217089.png)
+![image-20210821101217089](assets/image-20210821101217089.webp)
 
 
 
@@ -609,7 +609,7 @@ nginx -s reload
 
 OpenResty中提供了一些API用来获取不同类型的前端请求参数：
 
-![image-20210821101433528](assets/image-20210821101433528.png)
+![image-20210821101433528](assets/image-20210821101433528.webp)
 
 
 
@@ -617,7 +617,7 @@ OpenResty中提供了一些API用来获取不同类型的前端请求参数：
 
 在前端发起的ajax请求如图：
 
-![image-20210821101721649](assets/image-20210821101721649.png)
+![image-20210821101721649](assets/image-20210821101721649.webp)
 
 可以看到商品id是以路径占位符方式传递的，因此可以利用正则表达式匹配的方式来获取ID
 
@@ -663,7 +663,7 @@ nginx -s reload
 
 刷新页面可以看到结果中已经带上了ID：
 
-![image-20210821102235467](assets/image-20210821102235467.png) 
+![image-20210821102235467](assets/image-20210821102235467.webp) 
 
 
 
@@ -671,13 +671,13 @@ nginx -s reload
 
 拿到商品ID后，本应去缓存中查询商品信息，不过目前我们还未建立nginx、redis缓存。因此，这里我们先根据商品id去tomcat查询商品信息。我们实现如图部分：
 
-![image-20210821102610167](assets/image-20210821102610167.png)
+![image-20210821102610167](assets/image-20210821102610167.webp)
 
 
 
 需要注意的是，我们的OpenResty是在虚拟机，Tomcat是在Windows电脑上。两者IP一定不要搞错了。
 
-![image-20210821102959829](assets/image-20210821102959829.png)
+![image-20210821102959829](assets/image-20210821102959829.webp)
 
 
 
@@ -713,7 +713,7 @@ local resp = ngx.location.capture("/path",{
 
 原理如图：
 
-![image-20210821104149061](assets/image-20210821104149061.png)
+![image-20210821104149061](assets/image-20210821104149061.webp)
 
 
 
@@ -747,7 +747,7 @@ location /item {
 
 之前我们说过，OpenResty启动时会加载以下两个目录中的工具文件：
 
-![image-20210821104857413](assets/image-20210821104857413.png)
+![image-20210821104857413](assets/image-20210821104857413.webp)
 
 所以，自定义的http工具也需要放到这个目录下。
 
@@ -811,7 +811,7 @@ local itemStockJSON = read_http("/item/stock/".. id, nil)
 
 这里查询到的结果是json字符串，并且包含商品、库存两个json字符串，页面最终需要的是把两个json拼接为一个json：
 
-![image-20210821110441222](assets/image-20210821110441222.png)
+![image-20210821110441222](assets/image-20210821110441222.webp)
 
 
 
@@ -895,7 +895,7 @@ ngx.say(cjson.encode(item))
 
 刚才的代码中，我们的tomcat是单机部署。而实际开发中，tomcat一定是集群模式：
 
-![image-20210821111023255](assets/image-20210821111023255.png)
+![image-20210821111023255](assets/image-20210821111023255.webp)
 
 因此，OpenResty需要对tomcat集群做负载均衡。
 
@@ -972,17 +972,17 @@ nginx -s reload
 
 启动两台tomcat服务：
 
-![image-20210821112420464](assets/image-20210821112420464.png)
+![image-20210821112420464](assets/image-20210821112420464.webp)
 
 同时启动：
 
-![image-20210821112444482](assets/image-20210821112444482.png) 
+![image-20210821112444482](assets/image-20210821112444482.webp) 
 
 清空日志后，再次访问页面，可以看到不同id的商品，访问到了不同的tomcat服务：
 
-![image-20210821112559965](assets/image-20210821112559965.png)
+![image-20210821112559965](assets/image-20210821112559965.webp)
 
-![image-20210821112637430](assets/image-20210821112637430.png)
+![image-20210821112637430](assets/image-20210821112637430.webp)
 
 
 
@@ -1102,7 +1102,7 @@ public class RedisHandler implements InitializingBean {
 
 现在，Redis缓存已经准备就绪，我们可以再OpenResty中实现查询Redis的逻辑了。如下图红框所示：
 
-![image-20210821113340111](assets/image-20210821113340111.png)
+![image-20210821113340111](assets/image-20210821113340111.webp)
 
 当请求进入OpenResty之后：
 
@@ -1290,7 +1290,7 @@ end
 
 2）而后修改商品查询、库存查询的业务：
 
-![image-20210821114528954](assets/image-20210821114528954.png)
+![image-20210821114528954](assets/image-20210821114528954.webp)
 
 
 
@@ -1345,7 +1345,7 @@ ngx.say(cjson.encode(item))
 
 现在，整个多级缓存中只差最后一环，也就是nginx的本地缓存了。如图：
 
-![image-20210821114742950](assets/image-20210821114742950.png)
+![image-20210821114742950](assets/image-20210821114742950.webp)
 
 
 
@@ -1411,7 +1411,7 @@ end
 
 2）修改item.lua中查询商品和库存的业务，实现最新的read_data函数：
 
-![image-20210821115108528](assets/image-20210821115108528.png)
+![image-20210821115108528](assets/image-20210821115108528.webp)
 
 其实就是多了缓存时间参数，过期后nginx缓存会自动删除，下次访问即可更新缓存。
 
@@ -1513,7 +1513,7 @@ ngx.say(cjson.encode(item))
 
 1）基于MQ的异步通知：
 
-![image-20210821115552327](assets/image-20210821115552327.png)
+![image-20210821115552327](assets/image-20210821115552327.webp)
 
 解读：
 
@@ -1526,7 +1526,7 @@ ngx.say(cjson.encode(item))
 
 2）基于Canal的通知
 
-![image-20210821115719363](assets/image-20210821115719363.png)
+![image-20210821115719363](assets/image-20210821115719363.webp)
 
 解读：
 
@@ -1548,7 +1548,7 @@ ngx.say(cjson.encode(item))
 
 Canal是基于mysql的主从同步来实现的，MySQL主从同步的原理如下：
 
-![image-20210821115914748](assets/image-20210821115914748.png)
+![image-20210821115914748](assets/image-20210821115914748.webp)
 
 - 1）MySQL master 将数据变更写入二进制日志( binary log），其中记录的数据叫做binary log events
 - 2）MySQL slave 将 master 的 binary log events拷贝到它的中继日志(relay log)
@@ -1558,7 +1558,7 @@ Canal是基于mysql的主从同步来实现的，MySQL主从同步的原理如�
 
 而Canal就是把自己伪装成MySQL的一个slave节点，从而监听master的binary log变化。再把得到的变化信息通知给Canal的客户端，进而完成对其它数据库的同步。
 
-![image-20210821115948395](assets/image-20210821115948395.png)
+![image-20210821115948395](assets/image-20210821115948395.webp)
 
 
 
@@ -1566,7 +1566,7 @@ Canal是基于mysql的主从同步来实现的，MySQL主从同步的原理如�
 
 安装和配置Canal参考课前资料文档：
 
-![image-20210821120017324](assets/image-20210821120017324.png) 
+![image-20210821120017324](assets/image-20210821120017324.webp) 
 
 
 
@@ -1574,7 +1574,7 @@ Canal是基于mysql的主从同步来实现的，MySQL主从同步的原理如�
 
 Canal提供了各种语言的客户端，当Canal监听到binlog变化时，会通知Canal的客户端。
 
-![image-20210821120049024](assets/image-20210821120049024.png)
+![image-20210821120049024](assets/image-20210821120049024.webp)
 
 我们可以利用Canal提供的Java客户端，监听Canal通知消息。当收到变化的消息时，完成对缓存的更新。
 

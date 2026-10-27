@@ -7,7 +7,7 @@ order: 21
 
 我们先来看看什么是同步通讯和异步通讯。如图：
 
-![img](img/1779105059301-63.png)
+![img](img/1779105059301-63.webp)
 
 解读：
 
@@ -74,7 +74,7 @@ order: 21
 
 但是大家思考一下，我们假设用户余额充足，扣款已经成功，此时我们应该确保支付流水单更新为已支付，确保交易成功。毕竟收到手里的钱没道理再退回去吧。
 
-![img](img/1779105059281-1.png)
+![img](img/1779105059281-1.webp)
 
 因此，这里不能因为短信通知、更新订单状态失败而回滚整个事务。
 
@@ -189,7 +189,7 @@ docker run \
 
 如果拉取镜像困难的话，可以使用课前资料给大家准备的镜像，利用docker load命令加载：
 
-![img](img/1779105059281-2.png)
+![img](img/1779105059281-2.webp)
 
 可以看到在安装命令中有两个映射的端口：
 
@@ -200,11 +200,11 @@ docker run \
 
 登录后即可看到管理控制台总览页面：
 
-![img](img/1779105059281-3.png)
+![img](img/1779105059281-3.webp)
 
 RabbitMQ对应的架构如图：
 
-![img](img/1779105059281-4.png)
+![img](img/1779105059281-4.webp)
 
 其中包含几个概念：
 
@@ -222,13 +222,13 @@ RabbitMQ对应的架构如图：
 
 我们打开Exchanges选项卡，可以看到已经存在很多交换机：
 
-![img](img/1779105059281-5.png)
+![img](img/1779105059281-5.webp)
 
 我们点击任意交换机，即可进入交换机详情页面。仍然会利用控制台中的publish message 发送一条消息：
 
-![img](img/1779105059281-6.png)
+![img](img/1779105059281-6.webp)
 
-![img](img/1779105059281-7.png)
+![img](img/1779105059281-7.webp)
 
 这里是由控制台模拟了生产者发送的消息。由于没有消费者存在，最终消息丢失了，这样说明交换机没有存储消息的能力。
 
@@ -236,7 +236,7 @@ RabbitMQ对应的架构如图：
 
 我们打开`Queues`选项卡，新建一个队列：
 
-![img](img/1779105059281-8.png)
+![img](img/1779105059281-8.webp)
 
 命名为`hello.queue1`：
 
@@ -244,7 +244,7 @@ RabbitMQ对应的架构如图：
 
 再以相同的方式，创建一个队列，密码为`hello.queue2`，最终队列列表如下：
 
-![img](img/1779105059281-10.png)
+![img](img/1779105059281-10.webp)
 
 此时，我们再次向`amq.fanout`交换机发送一条消息。会发现消息依然没有到达队列！！
 
@@ -256,31 +256,31 @@ RabbitMQ对应的架构如图：
 
 点击`Exchanges`选项卡，点击`amq.fanout`交换机，进入交换机详情页，然后点击`Bindings`菜单，在表单中填写要绑定的队列名称：
 
-![img](img/1779105059281-11.png)
+![img](img/1779105059281-11.webp)
 
 相同的方式，将hello.queue2也绑定到改交换机。
 
 最终，绑定结果如下：
 
-![img](img/1779105059281-12.png)
+![img](img/1779105059281-12.webp)
 
 ### 2.2.4 发送消息
 
 再次回到exchange页面，找到刚刚绑定的`amq.fanout`，点击进入详情页，再次发送一条消息：
 
-![img](img/1779105059281-13.png)
+![img](img/1779105059281-13.webp)
 
 回到`Queues`页面，可以发现`hello.queue`中已经有一条消息了：
 
-![img](img/1779105059281-14.png)
+![img](img/1779105059281-14.webp)
 
 点击队列名称，进入详情页，查看队列详情，这次我们点击get message：
 
-![img](img/1779105059281-15.png)
+![img](img/1779105059281-15.webp)
 
 可以看到消息到达队列了：
 
-![img](img/1779105059282-16.png)
+![img](img/1779105059282-16.webp)
 
 这个时候如果有消费者监听了MQ的`hello.queue1`或`hello.queue2`队列，自然就能接收到消息了。
 
@@ -290,7 +290,7 @@ RabbitMQ对应的架构如图：
 
 点击`Admin`选项卡，首先会看到RabbitMQ控制台的用户管理界面：
 
-![img](img/1779105059282-17.png)
+![img](img/1779105059282-17.webp)
 
 这里的用户都是RabbitMQ的管理或运维人员。目前只有安装RabbitMQ时添加的`itheima`这个用户。仔细观察用户表格中的字段，如下：
 
@@ -305,11 +305,11 @@ RabbitMQ对应的架构如图：
 
 比如，我们给黑马商城创建一个新的用户，命名为`hmall`：
 
-![img](img/1779105059282-18.png)
+![img](img/1779105059282-18.webp)
 
 你会发现此时hmall用户没有任何`virtual host`的访问权限：
 
-![img](img/1779105059282-19.png)
+![img](img/1779105059282-19.webp)
 
 别急，接下来我们就来授权。
 
@@ -317,33 +317,33 @@ RabbitMQ对应的架构如图：
 
 我们先退出登录：
 
-![img](img/1779105059282-20.png)
+![img](img/1779105059282-20.webp)
 
 切换到刚刚创建的hmall用户登录，然后点击`Virtual Hosts`菜单，进入`virtual host`管理页：
 
-![img](img/1779105059282-21.png)
+![img](img/1779105059282-21.webp)
 
 可以看到目前只有一个默认的`virtual host`，名字为 `/`。
 
  我们可以给黑马商城项目创建一个单独的`virtual host`，而不是使用默认的`/`。
 
-![img](img/1779105059282-22.png)
+![img](img/1779105059282-22.webp)
 
 创建完成后如图：
 
-![img](img/1779105059282-23.png)
+![img](img/1779105059282-23.webp)
 
 由于我们是登录`hmall`账户后创建的`virtual host`，因此回到`users`菜单，你会发现当前用户已经具备了对`/hmall`这个`virtual host`的访问权限了：
 
-![img](img/1779105059282-24.png)
+![img](img/1779105059282-24.webp)
 
 此时，点击页面右上角的`virtual host`下拉菜单，切换`virtual host`为 `/hmall`：
 
-![img](img/1779105059282-25.png)
+![img](img/1779105059282-25.webp)
 
 然后再次查看queues选项卡，会发现之前的队列已经看不到了：
 
-![img](img/1779105059282-26.png)
+![img](img/1779105059282-26.webp)
 
 这就是基于`virtual host `的隔离效果。
 
@@ -369,11 +369,11 @@ SpringAMQP提供了三个功能：
 
 在课前资料给大家提供了一个Demo工程，方便我们学习SpringAMQP的使用：
 
-![img](img/1779105059282-27.png)
+![img](img/1779105059282-27.webp)
 
 将其复制到你的工作空间，然后用Idea打开，项目结构如图：
 
-![img](img/1779105059282-28.png)
+![img](img/1779105059282-28.webp)
 
 包括三部分：
 
@@ -448,11 +448,11 @@ SpringAMQP提供了三个功能：
 
 为了方便测试，我们现在控制台新建一个队列：simple.queue
 
-![img](img/1779105059282-29.png)
+![img](img/1779105059282-29.webp)
 
 添加成功：
 
-![img](img/1779105059282-30.png)
+![img](img/1779105059282-30.webp)
 
 接下来，我们就可以利用Java代码收发消息了。
 
@@ -500,7 +500,7 @@ public class SpringAmqpTest {
 
 打开控制台，可以看到消息已经发送到队列中：
 
-![img](img/1779105059282-31.png)
+![img](img/1779105059282-31.webp)
 
 接下来，我们再来实现消息接收。
 
@@ -542,7 +542,7 @@ public class SpringRabbitListener {
 
 启动consumer服务，然后在publisher服务中运行测试代码，发送MQ消息。最终consumer收到消息：
 
-![img](img/1779105059282-32.png)
+![img](img/1779105059282-32.webp)
 
 ## 3.3 WorkQueues模型
 
@@ -557,7 +557,7 @@ Work queues，任务模型。简单来说就是**让****多个消费者****绑�
 
 首先，我们在控制台创建一个新的队列，命名为`work.queue`：
 
-![img](img/1779105059282-33.png)
+![img](img/1779105059282-33.webp)
 
 ### 3.3.1 消息发送
 
@@ -780,7 +780,7 @@ Fanout，英文翻译是扇出，我觉得在MQ中叫广播更合适。
 
 在广播模式下，消息发送流程是这样的：
 
-![img](img/1779105059282-34.png)
+![img](img/1779105059282-34.webp)
 
 - 1）  可以有多个队列
 - 2）  每个队列都要绑定到Exchange（交换机）
@@ -790,7 +790,7 @@ Fanout，英文翻译是扇出，我觉得在MQ中叫广播更合适。
 
 我们的计划是这样的：
 
-![img](img/1779105059282-35.png)
+![img](img/1779105059282-35.webp)
 
 - 创建一个名为` hmall.fanout`的交换机，类型是`Fanout`
 - 创建两个队列`fanout.queue1`和`fanout.queue2`，绑定到交换机`hmall.fanout`
@@ -799,21 +799,21 @@ Fanout，英文翻译是扇出，我觉得在MQ中叫广播更合适。
 
 在控制台创建队列`fanout.queue1`:
 
-![img](img/1779105059282-36.png)
+![img](img/1779105059282-36.webp)
 
 在创建一个队列`fanout.queue2`：
 
-![img](img/1779105059282-37.png)
+![img](img/1779105059282-37.webp)
 
 然后再创建一个交换机：
 
-![img](img/1779105059282-38.png)
+![img](img/1779105059282-38.webp)
 
 然后绑定两个队列到交换机：
 
-![img](img/1779105059282-39.png)
+![img](img/1779105059282-39.webp)
 
-![img](img/1779105059282-40.png)
+![img](img/1779105059282-40.webp)
 
 ### 3.5.2 消息发送
 
@@ -859,7 +859,7 @@ public void listenFanoutQueue2(String msg) {
 
 在Fanout模式中，一条消息，会被所有订阅的队列都消费。但是，在某些场景下，我们希望不同的消息被不同的队列消费。这时就要用到Direct类型的Exchange。
 
-![img](img/1779105059282-41.png)
+![img](img/1779105059282-41.webp)
 
 在Direct模型下：
 
@@ -869,7 +869,7 @@ public void listenFanoutQueue2(String msg) {
 
 **案例需求如图**：
 
-![img](img/1779105059282-42.png)
+![img](img/1779105059282-42.webp)
 
 1.  声明一个名为`hmall.direct`的交换机
 2. 声明队列`direct.queue1`，绑定`hmall.direct`，`bindingKey`为`blud`和`red`
@@ -881,21 +881,21 @@ public void listenFanoutQueue2(String msg) {
 
 首先在控制台声明两个队列`direct.queue1`和`direct.queue2`，这里不再展示过程：
 
-![img](img/1779105059282-43.png)
+![img](img/1779105059282-43.webp)
 
 然后声明一个direct类型的交换机，命名为`hmall.direct`:
 
-![img](img/1779105059282-44.png)
+![img](img/1779105059282-44.webp)
 
 然后使用`red`和`blue`作为key，绑定`direct.queue1`到`hmall.direct`：
 
-![img](img/1779105059282-45.png)
+![img](img/1779105059282-45.webp)
 
-![img](img/1779105059282-46.png)
+![img](img/1779105059282-46.webp)
 
 同理，使用`red`和`yellow`作为key，绑定`direct.queue2`到`hmall.direct`，步骤略，最终结果：
 
-![img](img/1779105059282-47.png)
+![img](img/1779105059282-47.webp)
 
 ### 3.6.2 消息接收
 
@@ -931,7 +931,7 @@ public void testSendDirectExchange() {
 
 由于使用的red这个key，所以两个消费者都收到了消息：
 
-![img](img/1779105059282-48.png)
+![img](img/1779105059282-48.webp)
 
 我们再切换为blue这个key：
 
@@ -949,7 +949,7 @@ public void testSendDirectExchange() {
 
 你会发现，只有消费者1收到了消息：
 
-![img](img/1779105059282-49.png)
+![img](img/1779105059282-49.webp)
 
 ### 3.6.4 总结
 
@@ -983,7 +983,7 @@ BindingKey` 一般都是有一个或多个单词组成，多个单词之间以`.
 
 图示：
 
-![img](img/1779105059282-50.png)
+![img](img/1779105059282-50.webp)
 
 假如此时publisher发送的消息使用的`RoutingKey`共有四种：
 
@@ -1005,7 +1005,7 @@ BindingKey` 一般都是有一个或多个单词组成，多个单词之间以`.
 
 首先，在控制台按照图示例子创建队列、交换机，并利用通配符绑定队列和交换机。此处步骤略。最终结果如下：
 
-![img](img/1779105059282-51.png)
+![img](img/1779105059282-51.webp)
 
 ### 3.7.2 消息发送
 
@@ -1061,19 +1061,19 @@ public void listenTopicQueue2(String msg){
 
 SpringAMQP提供了一个Queue类，用来创建队列：
 
-![img](img/1779105059282-52.png)
+![img](img/1779105059282-52.webp)
 
 SpringAMQP还提供了一个Exchange接口，来表示所有不同类型的交换机：
 
-![img](img/1779105059282-53.png)
+![img](img/1779105059282-53.webp)
 
 我们可以自己创建队列和交换机，不过SpringAMQP还提供了ExchangeBuilder来简化这个过程：
 
-![img](img/1779105059282-54.png)
+![img](img/1779105059282-54.webp)
 
 而在绑定队列和交换机时，则需要使用BindingBuilder来创建Binding对象：
 
-![img](img/1779105059282-55.png)
+![img](img/1779105059282-55.webp)
 
 ### 3.8.2 fanout示例
 
@@ -1259,7 +1259,7 @@ public void listenTopicQueue2(String msg){
 
 Spring的消息发送代码接收的消息体是一个Object：
 
-![img](img/1779105059282-56.png)
+![img](img/1779105059282-56.webp)
 
 而在数据传输时，它会把你发送的消息序列化为字节发送给MQ，接收消息的时候，还会把字节反序列化为Java对象。
 
@@ -1277,7 +1277,7 @@ Spring的消息发送代码接收的消息体是一个Object：
 
 首先，我们在consumer服务中声明一个新的配置类：
 
-![img](img/1779105059282-57.png)
+![img](img/1779105059282-57.webp)
 
 利用@Bean的方式创建一个队列，
 
@@ -1304,7 +1304,7 @@ public class MessageConfig {
 
 重启consumer服务以后，该队列就会被自动创建出来了：
 
-![img](img/1779105059282-58.png)
+![img](img/1779105059282-58.webp)
 
 2）发送消息
 
@@ -1324,7 +1324,7 @@ public void testSendMap() throws InterruptedException {
 
 发送消息后查看控制台：
 
-![img](img/1779105059282-59.png)
+![img](img/1779105059282-59.webp)
 
 可以看到消息格式非常不友好。
 
@@ -1361,7 +1361,7 @@ public MessageConverter messageConverter(){
 
 此时，我们到MQ控制台**删除**`object.queue`中的旧的消息。然后再次执行刚才的消息发送的代码，到MQ的控制台查看消息结构：
 
-![img](img/1779105059283-60.png)
+![img](img/1779105059283-60.webp)
 
 ### 3.9.3 消费者接收Object
 
@@ -1380,7 +1380,7 @@ public void listenSimpleQueueMessage(Map<String, Object> msg) throws Interrupted
 
 如图：
 
-![img](img/1779105059283-61.png)
+![img](img/1779105059283-61.webp)
 
 说明：目前没有通知服务和积分服务，因此我们只关注交易服务，步骤如下：
 
@@ -1420,7 +1420,7 @@ spring:
 
 在trade-service服务中定义一个消息监听类：
 
-![img](img/1779105059283-62.png)
+![img](img/1779105059283-62.webp)
 
 其代码如下：
 

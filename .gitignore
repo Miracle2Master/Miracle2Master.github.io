@@ -2,3 +2,5 @@ node_modules
 .vitepress/dist
 .vitepress/cache
 .DS_Store
+# 图片转 WebP 时的原图备份（不参与构建、不提交）
+_img_backup

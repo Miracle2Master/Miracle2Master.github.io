@@ -15,12 +15,13 @@ npm run docs:dev     # 启动开发服务器，浏览器打开 http://localhost:
 
 - 改 `docs/` 下的 `.md` 笔记，页面会实时刷新。
 - 别双击 `index.html` 打开，那样是 `file://` 协议，会白屏。
-- ⚠️ 主容器内阅读的笔记图片需要构建产物（`dist/assets`），dev 模式下**图片可能不显示**。
+- ⚠️ 主容器内阅读的笔记图片在 `docs:dev` 下**不会显示**：图片 URL 由构建期算出的 `/notes-img/<md5>.webp`
+  指向 `dist/notes-img/`，dev 服务器不产出这个目录。要连图片一起看请用方式二/三。
 
 ### 方式二：构建 + 预览（与线上一致，笔记图片正常显示，适合调试主容器阅读/图片）
 
 ```bash
-npm run docs:build    # 构建到 .vitepress/dist/（图片重写为 /assets/hash.png）
+npm run docs:build    # 构建到 .vitepress/dist/（图片重写为 /notes-img/<md5>.webp）
 npm run docs:preview  # 预览构建产物，浏览器打开 http://localhost:4173/
 ```
 
@@ -74,6 +75,17 @@ push 到 `main` 后，GitHub Actions 会自动运行 `npm run docs:build` 并发
 - 新增、删除、改名笔记后，首页目录和侧边栏会**自动**更新（程序扫描 `docs/` 生成），无需手动改任何配置。
 - 笔记标题自动取自 md 里第一个 `# 一级标题`。
 - 按所在文件夹自动分组；根目录散落的 md 归入「其他」组。
+
+## 图片
+
+正文里的图片在构建期被统一重写成 `/notes-img/<内容md5>.<ext>`，由 `buildEnd` 复制到 `dist/notes-img/`。
+
+- **插图直接用原来的写法**：`![](img/xxx.webp)`，路径相对当前 md 所在目录即可，不用改成绝对路径。
+- 支持 `./`、子目录、Windows 反斜杠（`img\xxx.webp`）三种写法。
+- 图片内容相同 → MD5 相同 → 站点上只存一份，天然去重。
+- 找不到的图片不会再被 base64 内联进 HTML，而是在构建日志里 `console.warn` 并保留原路径。
+- 现在仓库里的图片统一是 **WebP（quality 85）**；原始 PNG/JPEG 已移到项目根的 `_img_backup/`
+  （不参与构建，也不提交），需要还原时从那里取回。
 
 ## 目录结构
 

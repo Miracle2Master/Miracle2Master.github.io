@@ -1,7 +1,14 @@
 import { defineConfig, createMarkdownRenderer } from 'vitepress'
-import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs'
+import {
+  readdirSync,
+  readFileSync,
+  statSync,
+  existsSync,
+  mkdirSync,
+  copyFileSync
+} from 'node:fs'
 import { createHash } from 'node:crypto'
-import { join, relative } from 'node:path'
+import { join, relative, dirname, resolve as resolvePath } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const docsDir = fileURLToPath(new URL('../docs', import.meta.url))
@@ -121,7 +128,7 @@ function orderOf(raw: string): number {
 
 // 单个分区：遍历 docs/<section>/ 下全部 md（任意深度），构建期渲染成 HTML
 // 根级散文件（如 目标与方向.md）与子文件夹里的文件同等对待，前端 FileTree 会递归成树
-function buildSectionContent(sectionKey: string, imgMap: Map<string, string>): SectionEntryData[] {
+function buildSectionContent(sectionKey: string): SectionEntryData[] {
   const sectionDir = join(docsDir, sectionKey)
   if (!existsSync(sectionDir) || !statSync(sectionDir).isDirectory()) return []
   const slots: { title: string; key: string; html: string; order: number }[] = []
@@ -135,7 +142,7 @@ function buildSectionContent(sectionKey: string, imgMap: Map<string, string>): S
     slots.push({
       title: rel.split('/').pop()!.replace(/\.md$/, ''),
       key,
-      html: rewriteImgSrcs(md.render(body), relDir, imgMap, sectionDir),
+      html: rewriteImgSrcs(md.render(body), relDir, sectionDir),
       order: orderOf(raw)
     })
   }
@@ -145,88 +152,90 @@ function buildSectionContent(sectionKey: string, imgMap: Map<string, string>): S
   return slots
 }
 
-// 全部分区：图片 hash 映射只建一次（建一次要读整个 assets 目录算 MD5，别按分区重复算）
+// 全部分区
 function buildAllSectionContent(): Record<string, SectionEntryData[]> {
-  const imgMap = buildImgHashMap()
   const out: Record<string, SectionEntryData[]> = {}
-  for (const s of sectionNav) out[s.key] = buildSectionContent(s.key, imgMap)
+  for (const s of sectionNav) out[s.key] = buildSectionContent(s.key)
   return out
 }
 
 // ===== 图片路径重写 =====
-// 图片源路径 → assets hash 文件名映射（构建期 VitePress 把 docs 下图片打进 dist/assets）
-// 同名图片（不同目录）内容相同，assets 里只有唯一 hash，按文件名映射不冲突。
-// 兼容策略：dist 尚不存在时（首次构建 / dev）返回空 Map，此时 render 时源文件在 docs 下直接存在，
-// 走「文件名匹配 + 内容 MD5 兜底」两条路，都能把相对路径重写到 assets hash。
-function buildImgHashMap(): Map<string, string> {
-  const map = new Map<string, string>()
-  const assetsDir = join(docsDir, '..', '.vitepress', 'dist', 'assets')
-  let files: string[] = []
-  try {
-    files = readdirSync(assetsDir)
-  } catch {
-    return map // dist 尚不存在（首次构建或 dev），返回空
+// 目标：笔记正文里的相对图片路径，一律重写成站点根下的稳定 URL
+//       /notes-img/<内容md5>.<ext>
+//
+// 为什么不再读 dist/assets：
+//   旧实现依赖「上一次构建产物 dist/assets」来反查 Vite 的 hash 文件名。但 markdown 的
+//   transformPageData 是在 Vite 打包阶段（load 钩子）里执行的，此时 Vite 还没写完 dist/assets，
+//   目录是空的 → 映射为空 → 全部退回 base64 内联。本地因为残留了上次的 dist 才「看起来正常」，
+//   CI 每次全新 checkout（.gitignore 排除了 dist）必然踩坑，整个首页被撑到 88 MB。
+//
+// 现在的做法完全不依赖任何构建产物：
+//   1) 配置加载后，自己遍历 docs/ 给每张图片算内容 MD5 → 输出文件名 <md5>.<ext>
+//   2) 渲染时按「相对 docs 的完整路径」查表，命中就重写 URL
+//   3) 构建结束时（buildEnd）把真正被引用到的图片复制到 dist/notes-img/
+//   自己的哈希算法、自己的复制时机，任何机器、任何次数构建结果都一致。
+const IMG_EXT_RE = /\.(png|jpe?g|gif|svg|webp)$/i
+const IMG_OUT_DIR = 'notes-img'
+
+type ImgEntry = { outName: string; source: string }
+
+// 遍历 docs/ 下全部图片文件
+function walkImages(dir: string): string[] {
+  const out: string[] = []
+  for (const name of readdirSync(dir)) {
+    if (name === 'node_modules' || name === '.vitepress' || name === 'dist') continue
+    const full = join(dir, name)
+    if (statSync(full).isDirectory()) out.push(...walkImages(full))
+    else if (IMG_EXT_RE.test(name)) out.push(full)
   }
-  for (const f of files) {
-    const m = f.match(/^(.+)\.([A-Za-z0-9_-]{4,})\.(png|jpe?g|gif|svg|webp)$/)
-    if (m) map.set(`${m[1]}.${m[3]}`, f)
-  }
-  // 内容兜底映射：源文件内容 MD5 → assets hash 文件名。
-  // Vite 构建时对内容相同的图片只保留一个 hash（同名去重），文件名映射可能落空，
-  // 这里按内容反查，保证重写不丢。
-  const contentMap = new Map<string, string>()
-  for (const f of files) {
-    const p = join(assetsDir, f)
-    if (!/\.(png|jpe?g|gif|svg|webp)$/i.test(f) || !existsSync(p)) continue
-    const h = createHash('md5').update(readFileSync(p)).digest('hex')
-    if (!contentMap.has(h)) contentMap.set(h, f)
-  }
-  map.set('__content__', '') // 占位（见 rewriteImgSrcs 内容兜底逻辑）
-  map['__contentMap'] = contentMap
-  return map
+  return out
 }
 
-// 把渲染后的笔记 HTML 里的相对图片路径重写为 /assets/hash（对齐 VitePress 独立页机制）
-// 统一 build 模式：本地调试也用 docs:build + docs:preview，无 dev 分支
-// baseDir：noteRelDir 的基准目录（笔记正文相对 notes/，兜底 pane 的页面相对 docs/）
+// 键 = 相对 docs 的路径（正斜杠），值 = { 输出文件名, 源文件绝对路径 }
+// 输出名用内容 MD5：图片内容相同 → 同名 → 天然去重
+function buildImgIndex(): Map<string, ImgEntry> {
+  const index = new Map<string, ImgEntry>()
+  for (const file of walkImages(docsDir)) {
+    const relFromDocs = relative(docsDir, file).replace(/\\/g, '/')
+    const ext = (file.match(IMG_EXT_RE) as RegExpMatchArray)[1].toLowerCase()
+    const hash = createHash('md5').update(readFileSync(file)).digest('hex')
+    index.set(relFromDocs, { outName: `${hash}.${ext}`, source: file })
+  }
+  return index
+}
+
+const imgIndex = buildImgIndex()
+
+// 本次构建真正被引用到的图片：输出名 → 源文件。buildEnd 只复制这里登记过的。
+const usedImages = new Map<string, string>()
+
+// 把渲染后的笔记 HTML 里的相对图片路径重写为 /notes-img/<md5>.<ext>
+// baseDir：图片相对路径的基准目录（分区根，如 docs/notes）
+// 查不到（文件不存在 / 路径越界）时保留原样并告警，不再做 base64 内联——
+// 内联会让 HTML 体积按图片总量膨胀，正是这次要根除的问题。
 function rewriteImgSrcs(
   html: string,
   noteRelDir: string,
-  imgMap: Map<string, string>,
   baseDir: string = NOTES_DIR
 ): string {
-  const contentMap = (imgMap as unknown as Record<string, Map<string, string>>)['__contentMap'] as Map<string, string> | undefined
   return html.replace(
     /(<img[^>]*\bsrc=)(["'])([^"']+)(\2)/g,
     (all, pre: string, q: string, src: string) => {
       if (!/^(?:\.{0,2}\/|(?![a-z]+:|\/)).*\.(png|jpe?g|gif|svg|webp)$/i.test(src)) return all
       // 反斜杠路径归一：Windows 导出的 md 里是 assets\xxx.png 或 .\assets\xxx.png，
       // markdown-it 渲染后变成 assets%5Cxxx.png 或 .%5Cassets%5Cxxx.png。
-      // 这里把 %5C / \ 统一还原为 /，再取最后一段文件名参与匹配。
       const normSrc = src.replace(/%5C/gi, '/').replace(/\\/g, '/')
-      let srcPath = noteRelDir + normSrc.replace(/^\.\//, '')
-      const name = srcPath.split('/').pop()!
-      const hashed = imgMap.get(name)
-      if (hashed) return `${pre}${q}/assets/${hashed}${q}`
-      // 文件名映射落空（内容同名去重）→ 按源文件内容 MD5 反查
-      if (contentMap) {
-        const srcFull = join(baseDir, srcPath)
-        if (existsSync(srcFull)) {
-          const h = createHash('md5').update(readFileSync(srcFull)).digest('hex')
-          const target = contentMap.get(h)
-          if (target) return `${pre}${q}/assets/${target}${q}`
-        }
+      const srcPath = noteRelDir + normSrc.replace(/^\.\//, '')
+      const full = resolvePath(baseDir, srcPath)
+      const entry = existsSync(full)
+        ? imgIndex.get(relative(docsDir, full).replace(/\\/g, '/'))
+        : undefined
+      if (!entry) {
+        console.warn(`[notes-img] 图片未找到，保留原路径：${src}`)
+        return all
       }
-      // 最后兜底：源文件存在但从未被 Vite 打包（如独立页 base64 内联、未被任何资源引用）
-      // → 直接内联 base64，避免浏览器请求相对路径 404
-      const srcFull2 = join(baseDir, srcPath)
-      if (existsSync(srcFull2) && !/\.(gif|svg)$/i.test(srcPath)) {
-        const ext = srcPath.split('.').pop()!.toLowerCase()
-        const mime = ext === 'jpg' ? 'jpeg' : ext
-        const b64 = readFileSync(srcFull2).toString('base64')
-        return `${pre}${q}data:image/${mime};base64,${b64}${q}`
-      }
-      return all // 找不到 hash，保留原样
+      usedImages.set(entry.outName, entry.source)
+      return `${pre}${q}/${IMG_OUT_DIR}/${entry.outName}${q}`
     }
   )
 }
@@ -263,6 +272,19 @@ export default defineConfig({
   transformPageData(pageData) {
     injectSectionContent(pageData)
     pageData.sectionNav = sectionNav
+  },
+  // 构建收尾：把本次真正被正文引用到的图片复制到 dist/notes-img/
+  // 放在 buildEnd 而不是依赖 Vite 的资源管线，是因为这里要的是「我们自己的稳定 URL」，
+  // 与 Vite 的 hash 文件名、打包时机都无关。transformPageData 已经把所有命中项登记进 usedImages。
+  buildEnd(siteConfig) {
+    const outDir = join(siteConfig.outDir, IMG_OUT_DIR)
+    mkdirSync(outDir, { recursive: true })
+    for (const [outName, source] of usedImages) {
+      const dest = join(outDir, outName)
+      mkdirSync(dirname(dest), { recursive: true })
+      copyFileSync(source, dest)
+    }
+    console.log(`[notes-img] 已复制 ${usedImages.size} 张图片到 dist/${IMG_OUT_DIR}/`)
   },
   markdown: {
     math: true,

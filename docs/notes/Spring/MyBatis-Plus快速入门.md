@@ -8,27 +8,27 @@ order: 61
 
 复制课前资料提供好的一个项目到你的工作空间（不要包含空格和特殊字符）：
 
-![img](img/1778249940519-62.png)
+![img](img/1778249940519-62.webp)
 
 然后用你的IDEA工具打开，项目结构如下：
 
-![img](img/1778249940478-1.png)
+![img](img/1778249940478-1.webp)
 
 注意配置一下项目的JDK版本为JDK11。首先点击项目结构设置：
 
-![img](img/1778249940478-2.png)
+![img](img/1778249940478-2.webp)
 
 在弹窗中配置JDK：
 
-![img](img/1778249940478-3.png)
+![img](img/1778249940478-3.webp)
 
 接下来，要导入两张表，在课前资料中已经提供了SQL文件：
 
-![img](img/1778249940478-4.png)
+![img](img/1778249940478-4.webp)
 
 对应的数据库表结构如下：
 
-![img](img/1778249940478-5.png)
+![img](img/1778249940478-5.webp)
 
 最后，在`application.yaml`中修改jdbc参数为你自己的数据库参数：
 
@@ -96,11 +96,11 @@ MybatisPlus提供了starter，实现了自动Mybatis以及MybatisPlus的自动�
 
 为了简化单表CRUD，MybatisPlus提供了一个基础的`BaseMapper`接口，其中已经实现了单表的CRUD：
 
-![img](img/1778249940478-6.png)
+![img](img/1778249940478-6.webp)
 
 因此我们自定义的Mapper只要实现了这个`BaseMapper`，就无需自己实现单表CRUD了。 修改mp-demo中的`com.itheima.mp.mapper`包下的`UserMapper`接口，让其继承`BaseMapper`：
 
-![img](img/1778249940478-7.png)
+![img](img/1778249940478-7.webp)
 
 代码如下：
 
@@ -195,7 +195,7 @@ user = User(id=5, username=Lucy, password=123, phone=18688990011, info={"age": 2
 
 大家回忆一下，UserMapper在继承BaseMapper的时候指定了一个泛型：
 
-![img](img/1778249940478-8.png)
+![img](img/1778249940478-8.webp)
 
 泛型中的User就是与数据库对应的PO.
 
@@ -355,7 +355,7 @@ mybatis-plus:
 
 例如，我们新建一个`UserMapper.xml`文件：
 
-![img](img/1778249940479-9.png)
+![img](img/1778249940479-9.webp)
 
 然后在其中定义一个方法：
 
@@ -388,23 +388,23 @@ void testQuery() {
 
 除了新增以外，修改、删除、查询的SQL语句都需要指定where条件。因此BaseMapper中提供的相关方法除了以`id`作为`where`条件以外，还支持更加复杂的`where`条件。
 
-![img](img/1778249940479-10.png)
+![img](img/1778249940479-10.webp)
 
 参数中的`Wrapper`就是条件构造的抽象类，其下有很多默认实现，继承关系如图：
 
-![img](img/1778249940479-11.png)
+![img](img/1778249940479-11.webp)
 
 `Wrapper`的子类`AbstractWrapper`提供了where中包含的所有条件构造方法：
 
-![img](img/1778249940479-12.png)
+![img](img/1778249940479-12.webp)
 
 而QueryWrapper在AbstractWrapper的基础上拓展了一个select方法，允许指定查询字段：
 
-![img](img/1778249940479-13.png)
+![img](img/1778249940479-13.webp)
 
 而UpdateWrapper在AbstractWrapper的基础上拓展了一个set方法，允许指定SQL中的SET部分：
 
-![img](img/1778249940479-14.png)
+![img](img/1778249940479-14.webp)
 
 接下来，我们就来看看如何利用`Wrapper`实现复杂查询。
 
@@ -496,7 +496,7 @@ void testLambdaQueryWrapper() {
 
 在演示UpdateWrapper的案例中，我们在代码中编写了更新的SQL语句：
 
-![img](img/1778249940479-15.png)
+![img](img/1778249940479-15.webp)
 
 这种写法在某些企业也是不允许的，因为SQL语句最好都维护在持久层，而不是业务层。就当前案例来说，由于条件是in语句，只能将SQL写在Mapper.xml文件，利用foreach来生成动态SQL。 这实在是太麻烦了。假如查询条件更复杂，动态SQL的编写也会更加复杂。
 
@@ -606,7 +606,7 @@ MybatisPlus不仅提供了BaseMapper，还提供了通用的Service接口及默�
 
 我们先俩看下基本的CRUD接口。 **新增**：
 
-![img](img/1778249940479-16.png)
+![img](img/1778249940479-16.webp)
 
 - `save`是新增单个元素
 - `saveBatch`是批量新增
@@ -615,7 +615,7 @@ MybatisPlus不仅提供了BaseMapper，还提供了通用的Service接口及默�
 
 **删除：**
 
-![img](img/1778249940479-17.png)
+![img](img/1778249940479-17.webp)
 
 - `removeById`：根据id删除
 - `removeByIds`：根据id批量删除
@@ -625,7 +625,7 @@ MybatisPlus不仅提供了BaseMapper，还提供了通用的Service接口及默�
 
 **修改：**
 
-![img](img/1778249940479-18.png)
+![img](img/1778249940479-18.webp)
 
 - `updateById`：根据id修改
 - `update(Wrapper<T>)`：根据`UpdateWrapper`修改，`Wrapper`中包含`set`和`where`部分
@@ -634,7 +634,7 @@ MybatisPlus不仅提供了BaseMapper，还提供了通用的Service接口及默�
 
 **Get：**
 
-![img](img/1778249940479-19.png)
+![img](img/1778249940479-19.webp)
 
 - `getById`：根据id查询1条数据
 - `getOne(Wrapper<T>)`：根据`Wrapper`查询1条数据
@@ -642,7 +642,7 @@ MybatisPlus不仅提供了BaseMapper，还提供了通用的Service接口及默�
 
 **List：**
 
-![img](img/1778249940479-20.png)
+![img](img/1778249940479-20.webp)
 
 - `listByIds`：根据id批量查询
 - `list(Wrapper<T>)`：根据Wrapper条件查询多条数据
@@ -650,14 +650,14 @@ MybatisPlus不仅提供了BaseMapper，还提供了通用的Service接口及默�
 
 **Count**：
 
-![img](img/1778249940479-21.png)
+![img](img/1778249940479-21.webp)
 
 - `count()`：统计所有数量
 - `count(Wrapper<T>)`：统计符合`Wrapper`条件的数据数量
 
 **getBaseMapper**： 当我们在service中要调用Mapper中自定义SQL时，就必须获取service对应的Mapper，就可以通过这个方法：
 
-![img](img/1778249940479-22.png)
+![img](img/1778249940479-22.webp)
 
 ### 2.3.2 基本用法
 
@@ -695,7 +695,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
 项目结构如下：
 
-![img](img/1778249940479-23.png)
+![img](img/1778249940479-23.webp)
 
 接下来，我们快速实现下面4个接口：
 
@@ -1107,7 +1107,7 @@ private User buildUser(int i) {
 
 执行结果如下：
 
-![img](img/1778249940479-24.png)
+![img](img/1778249940479-24.webp)
 
 可以看到速度非常慢。
 
@@ -1134,7 +1134,7 @@ void testSaveBatch() {
 
 执行最终耗时如下：
 
-![img](img/1778249940479-25.png)
+![img](img/1778249940479-25.webp)
 
 可以看到使用了批处理以后，比逐条新增效率提高了10倍左右，性能还是不错的。
 
@@ -1207,13 +1207,13 @@ spring:
 
 再次测试插入10万条数据，可以发现速度有非常明显的提升：
 
-![img](img/1778249940479-26.png)
+![img](img/1778249940479-26.webp)
 
 在`ClientPreparedStatement`的`executeBatchInternal`中，有判断`rewriteBatchedStatements`值是否为true并重写SQL的功能：
 
 最终，SQL被重写了：
 
-![img](img/1778249940479-27.png)
+![img](img/1778249940479-27.webp)
 
 # 3.扩展功能
 
@@ -1227,7 +1227,7 @@ spring:
 
 在`Idea`的plugins市场中搜索并安装`MyBatisPlus`插件：
 
-![img](img/1778249940479-28.png)
+![img](img/1778249940479-28.webp)
 
 然后重启你的Idea即可使用。
 
@@ -1235,21 +1235,21 @@ spring:
 
 刚好数据库中还有一张address表尚未生成对应的实体和mapper等基础代码。我们利用插件生成一下。 首先需要配置数据库地址，在Idea顶部菜单中，找到`other`，选择`Config Database`：
 
-![img](img/1778249940479-29.png)
+![img](img/1778249940479-29.webp)
 
 在弹出的窗口中填写数据库连接的基本信息：
 
-![img](img/1778249940479-30.png)
+![img](img/1778249940479-30.webp)
 
 点击OK保存。
 
 然后再次点击Idea顶部菜单中的other，然后选择`Code Generato``r`:
 
-![img](img/1778249940479-31.png)
+![img](img/1778249940479-31.webp)
 
 在弹出的表单中填写信息：
 
-![img](img/1778249940479-32.png)
+![img](img/1778249940479-32.webp)
 
 最终，代码自动生成到指定的位置了：
 
@@ -1257,7 +1257,7 @@ spring:
 
 有的时候Service之间也会相互调用，为了避免出现循环依赖问题，MybatisPlus提供一个静态工具类：`Db`，其中的一些静态方法与`IService`中方法签名基本一致，也可以帮助我们实现CRUD功能：
 
-![img](img/1778249940479-33.png)
+![img](img/1778249940479-33.webp)
 
 示例：
 
@@ -1335,7 +1335,7 @@ public class AddressVO{
 
 然后，改造原来的UserVO，添加一个地址属性：
 
-![img](img/1778249940479-34.png)
+![img](img/1778249940479-34.webp)
 
 接下来，修改UserController中根据id查询用户的业务接口：
 
@@ -1413,7 +1413,7 @@ alter table address add deleted bit default b'0' null comment '逻辑删除';
 
 然后给`Address`实体添加`deleted`字段：
 
-![img](img/1778249940479-35.png)
+![img](img/1778249940479-35.webp)
 
 接下来，我们要在`application.yml`中配置逻辑删除字段：
 
@@ -1438,7 +1438,7 @@ void testDeleteByLogic() {
 
 方法与普通删除一模一样，但是底层的SQL逻辑变了：
 
-![img](img/1778249940479-36.png)
+![img](img/1778249940479-36.webp)
 
 查询一下试试：
 
@@ -1452,7 +1452,7 @@ void testQuery() {
 
 会发现id为59的确实没有查询出来，而且SQL中也对逻辑删除字段做了判断：
 
-![img](img/1778249940479-37.png)
+![img](img/1778249940479-37.webp)
 
 综上， 开启了逻辑删除功能以后，我们就可以像普通删除一样做CRUD，基本不用考虑代码逻辑问题。还是非常方便的。
 
@@ -1467,7 +1467,7 @@ void testQuery() {
 
 User类中有一个用户状态字段：
 
-![img](img/1778249940479-38.png)
+![img](img/1778249940479-38.webp)
 
 像这种字段我们一般会定义一个枚举，做业务判断的时候就可以直接基于枚举做比较。但是我们数据库采用的是`int`类型，对应的PO也是`Integer`。因此业务操作时必须手动把`枚举`与`Integer`转换，非常麻烦。
 
@@ -1477,7 +1477,7 @@ User类中有一个用户状态字段：
 
 我们定义一个用户状态的枚举：
 
-![img](img/1778249940479-39.png)
+![img](img/1778249940479-39.webp)
 
 代码如下：
 
@@ -1504,11 +1504,11 @@ public enum UserStatus {
 
 然后把`User`类中的`status`字段改为`UserStatus` 类型：
 
-![img](img/1778249940479-40.png)
+![img](img/1778249940479-40.webp)
 
 要让`MybatisPlus`处理枚举与数据库类型自动转换，我们必须告诉`MybatisPlus`，枚举中的哪个字段的值作为数据库值。 `MybatisPlus`提供了`@EnumValue`注解来标记枚举属性：
 
-![img](img/1778249940479-41.png)
+![img](img/1778249940479-41.webp)
 
 ### 3.3.2 配置枚举处理器
 
@@ -1532,25 +1532,25 @@ void testService() {
 
 最终，查询出的`User`类的`status`字段会是枚举类型：
 
-![img](img/1778249940479-42.png)
+![img](img/1778249940479-42.webp)
 
 同时，为了使页面查询结果也是枚举格式，我们需要修改UserVO中的status属性：
 
-![img](img/1778249940479-43.png)
+![img](img/1778249940479-43.webp)
 
 并且，在UserStatus枚举中通过`@JsonValue`注解标记JSON序列化时展示的字段：
 
-![img](img/1778249940479-44.png)
+![img](img/1778249940479-44.webp)
 
 最后，在页面查询，结果如下：
 
-![img](img/1778249940479-45.png)
+![img](img/1778249940479-45.webp)
 
 ## 3.4 JSON类型处理器
 
 数据库的user表中有一个`info`字段，是JSON类型：
 
-![img](img/1778249940479-46.png)
+![img](img/1778249940479-46.webp)
 
 格式像这样：
 
@@ -1560,7 +1560,7 @@ void testService() {
 
 而目前`User`实体类中却是`String`类型：
 
-![img](img/1778249940480-47.png)
+![img](img/1778249940480-47.webp)
 
 这样一来，我们要读取info中的属性时就非常不方便。如果要方便获取，info的类型最好是一个`Map`或者实体类。
 
@@ -1574,7 +1574,7 @@ void testService() {
 
 首先，我们定义一个单独实体类来与info字段的属性匹配：
 
-![img](img/1778249940480-48.png)
+![img](img/1778249940480-48.webp)
 
 代码如下：
 
@@ -1595,23 +1595,23 @@ public class UserInfo {
 
 接下来，将User类的info字段修改为UserInfo类型，并声明类型处理器：
 
-![img](img/1778249940480-49.png)
+![img](img/1778249940480-49.webp)
 
 同时，在User类上添加一个注解，声明自动映射：
 
-![img](img/1778249940480-50.png)
+![img](img/1778249940480-50.webp)
 
 测试可以发现，所有数据都正确封装到UserInfo当中了：
 
-![img](img/1778249940480-51.png)
+![img](img/1778249940480-51.webp)
 
 同时，为了让页面返回的结果也以对象格式返回，我们要修改UserVO中的info字段：
 
-![img](img/1778249940480-52.png)
+![img](img/1778249940480-52.webp)
 
 此时，在页面查询结果如下：
 
-![img](img/1778249940480-53.png)
+![img](img/1778249940480-53.webp)
 
 ## 3.5 配置加密（选学）
 
@@ -1677,7 +1677,7 @@ spring:
 
 单元测试的时候不能添加启动参数，所以要在测试类的注解上配置：
 
-![img](img/1778249940480-54.png)
+![img](img/1778249940480-54.webp)
 
 然后随意运行一个单元测试，可以发现数据库查询正常。
 
@@ -1708,7 +1708,7 @@ MybatisPlus提供了很多的插件功能，进一步拓展其功能。目前已
 
 在项目中新建一个配置类：
 
-![img](img/1778249940480-55.png)
+![img](img/1778249940480-55.webp)
 
 其代码如下：
 
@@ -1756,7 +1756,7 @@ void testPageQuery() {
 
 运行的SQL如下：
 
-![img](img/1778249940480-56.png)
+![img](img/1778249940480-56.webp)
 
 这里用到了分页参数，Page，即可以支持分页参数，也可以支持排序参数。常见的API如下：
 
@@ -1815,7 +1815,7 @@ public class UserQuery {
 
 其中缺少的仅仅是分页条件，而分页条件不仅仅用户分页查询需要，以后其它业务也都有分页查询的需求。因此建议将分页查询条件单独定义为一个`PageQuery`实体：
 
-![img](img/1778249940480-57.png)
+![img](img/1778249940480-57.webp)
 
 `PageQuery`是前端提交的查询参数，一般包含四个属性：
 
@@ -1866,11 +1866,11 @@ public class UserQuery extends PageQuery {
 
 返回值的用户实体沿用之前定一个`UserVO`实体：
 
-![img](img/1778249940480-58.png)
+![img](img/1778249940480-58.webp)
 
 最后，则是分页实体PageDTO:
 
-![img](img/1778249940480-59.png)
+![img](img/1778249940480-59.webp)
 
 代码如下：
 
@@ -1965,7 +1965,7 @@ public PageDTO<UserVO> queryUsersPage(PageQuery query) {
 
 启动项目，在页面查看：
 
-![img](img/1778249940480-60.png)
+![img](img/1778249940480-60.webp)
 
 ### 4.2.3 改造PageQuery实体
 
@@ -2144,7 +2144,7 @@ public PageDTO<UserVO> queryUserByPage(PageQuery query) {
 
 最终查询的结果如下：
 
-![img](img/1778249940480-61.png)
+![img](img/1778249940480-61.webp)
 
 # 5.作业
 

@@ -12,6 +12,7 @@
 #
 # 对应源码：.vitepress/config.mts 的 loadSectionMap() / buildSections()
 
+Spring  - Java
 notes   - 笔记
 diary   - 日记
 archive - 归档

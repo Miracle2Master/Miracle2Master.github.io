@@ -338,6 +338,16 @@ export default defineConfig({
   // 客户端 isDark 恒为 true、右上角明暗切换组件（VPNavBarAppearance）不再渲染。
   // 站点配色只维护深色一套，避免两套色值分叉。
   appearance: 'force-dark',
+  // 标签页图标（favicon）。
+  // 优先给浏览器 SVG（任意缩放都锐利，体积 280B），不支持 SVG 的旧浏览器回落到 32×32 PNG。
+  // 两条 icon 都声明了类型：浏览器按 type 和 sizes 挑一条，不会把两张图都下载。
+  // apple-touch-icon 是 iOS 添加到主屏时的图标，需要 180×180 的不透明方图。
+  // 三个文件都在 docs/public/ 下，构建时原样复制到站点根，故 href 直接写根路径。
+  head: [
+    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' }],
+    ['link', { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/favicon-32.png' }],
+    ['link', { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' }]
+  ],
   // 构建时给所有页面 <html> 加默认 dark（极客风首屏即深色）
   // 另外：分区笔记的独立页（/notes/x.html 这类）注入一行跳转脚本，把地址换成首页三栏。
   // 为什么在构建期做：独立页是另一套渲染路径（没有左栏目录，见 themeConfig.sidebar），

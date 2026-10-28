@@ -150,8 +150,76 @@ html .vp-doc :not(pre, h1, h2, h3, h4, h5, h6) > code {
   border-left: 3px solid var(--vp-c-brand-1);
 }
 
-.vp-doc blockquote {
-  border-left: 4px solid var(--vp-c-brand-1);
+/* ===== 引用块（> 引用）：深蓝底 + 圆角边框 + 灯泡装饰 =====
+   底色 #0F1E3C 比页面底 #0A0C10 亮得多，块的范围靠底色本身就能看出来，
+   所以原来那条 4px 品牌青竖线可以去掉。
+
+   边框用深蓝 #1E3A8A（30,58,138），比底色 #0F1E3C 亮一档，描出一条清楚的蓝色边。
+   框线宽度 0.5px，比常规 1px 更细，靠颜色区分而不是靠粗细。
+
+   装饰图标：::before + mask 画一个内联 SVG 灯泡，不插入任何 DOM。
+   - 填色走 currentColor，颜色自动跟随引用块文字色，换主题不用同步改图标；
+   - 伪元素不进无障碍树，读屏不会多念一个图标；
+   - 用描边（stroke）而不是填充：18px 下有线条结构，比一坨实心形状更易辨认。
+
+   字号：正文 16px，这里小 2px 取 14px。行高必须一起改：
+   VitePress 给 .vp-doc p 固定了 28px，直接套到 14px 字上会松垮（行距近 2.0），
+   按正文 16/28 的比例，14px 对应 24px。 */
+html .vp-doc blockquote {
+  position: relative;
+  margin: 16px 0;
+  /* 左 44px = 图标左起点 14 + 图标宽 18 + 与文字间距 12 */
+  padding: 12px 16px 12px 44px;
+  background: #0F1E3C;
+  border: 0.5px solid #1E3A8A;
+  border-radius: 10px;
+  font-size: 14px;
+  line-height: 24px;
+}
+
+/* VitePress 直接给 blockquote > p 写了 font-size: 16px，
+   必须在同一层元素上再声明一次才覆盖得掉（继承值压不过直接声明）。 */
+html .vp-doc blockquote > p {
+  font-size: 14px;
+  line-height: 24px;
+}
+
+/* 灯泡图标：与首行垂直居中对齐。
+   首行中心 = 上内边距 12 + 行高 24 / 2 = 24；图标 18px，故 top = 24 - 9 = 15。
+   图形取自 Lucide 的 lightbulb。viewBox 取路径包围盒再向外留 1px（stroke-width: 2
+   是居中描边，每边各占 1px）：「5 1 14 22」。不留这 1px，灯泡顶部的弧线会被裁掉半个描边。 */
+html .vp-doc blockquote::before {
+  content: '';
+  position: absolute;
+  top: 15px;
+  left: 14px;
+  width: 18px;
+  height: 18px;
+  background-color: currentColor;
+  opacity: 0.5;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='5 1 14 22' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5'/%3E%3Cpath d='M9 18h6'/%3E%3Cpath d='M10 22h4'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='5 1 14 22' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5'/%3E%3Cpath d='M9 18h6'/%3E%3Cpath d='M10 22h4'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+/* 窄屏：正文只有一栏宽，44px 的左边距占比过大。
+   图标缩到 16px、左边距收到 38px（12 + 16 + 10），少让一点可用宽度。 */
+@media (max-width: 639px) {
+  html .vp-doc blockquote {
+    padding-left: 38px;
+  }
+  html .vp-doc blockquote::before {
+    top: 16px;
+    left: 12px;
+    width: 16px;
+    height: 16px;
+  }
+}
+
+/* 引用块内相邻内容的间距：VitePress 默认把 blockquote > p 的 margin 归零，
+   单看文字段落少一点空隙无所谓；一旦有了底色和边框、整块变成一个可见的盒子，
+   多段引用（本站有 44 处）就会挤成一片。相邻块之间统一给 12px。 */
+html .vp-doc blockquote > * + * {
+  margin-top: 12px;
 }
 
 /* 代码块容器：底色 #0B0C0E，另加一圈半透明白色圆角边框勾勒范围。
@@ -161,13 +229,12 @@ html .vp-doc :not(pre, h1, h2, h3, h4, h5, h6) > code {
    全站已强制深色（config 的 appearance: 'force-dark'），故不再用 html.dark 前缀，
    色值直接写死，不依赖 --vp-code-block-bg，避免上游变量变化时回落到别的底色。
 
-   框线细度：1px 是浏览器能稳定渲染的最小实线（0.5px 在 1x 屏会被取整回 1px，各设备观感不一致），
-   所以「更细」靠降浓度实现。35% 白叠在 #0B0C0E 上实际为 #606162，对块底 3.16:1，
-   是一条清楚的浅色细线，不抢正文。 */
+   框线细度：0.8px，比 1px 更细；15% 白叠在 #0B0C0E 上实际为 #303032，对块底约 1.48:1，
+   是一条隐约可辨的浅色细线，只用来交代范围，不抢正文。 */
 html .vp-doc div[class*='language-'] {
   background: #0B0C0E;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  border-radius: 8px;
+  border: 0.8px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
 }
 
 /* 移动端（<640px）VitePress 默认让代码块左右各外扩 24px 铺满屏幕。
@@ -196,6 +263,18 @@ html .vp-doc div[class*='language-'] code {
   color: var(--vp-c-brand-2);
 }
 
+/* ===== 标题旁的 # 锚点：灰色 =====
+   默认没有自己的 color，继承 .vp-doc a 的品牌青。它只是个定位符号，
+   不参与正文强调，压成灰色后不抢标题的注意力。
+   选择器多一层 html：压过 .vp-doc a（0,1,1）与 .vp-doc a:hover（0,2,1），
+   按项目规范不用 !important。 */
+html .vp-doc .header-anchor,
+html .vp-doc .header-anchor:hover {
+  color: var(--vp-c-text-3);
+  /* 构建期去掉了 href（改由 NoteView 接管滚动），浏览器不再自动给手型，手动补回 */
+  cursor: pointer;
+}
+
 /* ===== 搜索框：整页水平正中 + 加长（锚定视口，滚动不漂移） ===== */
 @media (min-width: 768px) {
   .VPNavBarSearch {
@@ -218,6 +297,40 @@ html .vp-doc div[class*='language-'] code {
 /* ===== 导航栏标题文字：向左微调 ===== */
 .VPNavBarTitle .title > span {
   margin-left: -8px;
+}
+
+/* ===== 顶栏「首页」图标（内容由 config.mts 的 HOME_NAV_TEXT 注入） =====
+   VitePress 把菜单项内容包在 <span v-html> 里，图标和文字都在这层 span 内。
+   顶栏用图标、移动端抽屉用文字：按容器区分，不需要额外断点。 */
+.VPNavBarMenuLink > span,
+.VPNavScreenMenuLink > span {
+  display: inline-flex;
+  align-items: center;
+  /* 顶栏里文字是视觉隐藏（position: absolute），加个定位上下文，
+     让它就锁在这一项内部，而不是相对整个顶栏定位 */
+  position: relative;
+}
+
+.nav-home-icon {
+  display: block;
+  width: 18px;
+  height: 18px;
+}
+
+/* 顶栏：文字只留给读屏（视觉隐藏，不能 display:none，否则无障碍树里就没有链接名了） */
+.VPNavBarMenuLink .nav-home-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  white-space: nowrap;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  overflow: hidden;
+}
+
+/* 移动端抽屉：一列纯文字菜单，这里显示文字、不用图标 */
+.VPNavScreenMenuLink .nav-home-icon {
+  display: none;
 }
 
 /* ===== 导航栏：始终显示背景（默认首页顶部时是透明的，滚动才有） ===== */

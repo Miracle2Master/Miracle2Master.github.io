@@ -162,7 +162,7 @@ function buildSectionContent(sectionKey: string): SectionEntryData[] {
     slots.push({
       title: rel.split('/').pop()!.replace(/\.md$/, ''),
       key,
-      html: rewriteImgSrcs(md.render(body), relDir, sectionDir),
+      html: rewriteInlineAnchors(rewriteImgSrcs(md.render(body), relDir, sectionDir)),
       order: orderOf(raw),
       intro: introOf(raw)
     })
@@ -264,6 +264,40 @@ function rewriteImgSrcs(
   )
 }
 
+// ===== 正文标题锚点：去掉 href，交给 NoteView 就地滚动 =====
+// 标题旁那个 hover 才出现的 #，html 是 <a class="header-anchor" href="#slug">。
+// 首页把全部分区正文挂在同一个 DOM 里，这个 # 在这里只是「本页内滚动」，不是导航。
+//
+// 为什么不能在组件里拦点击：VitePress 的全局点击代理注册在 window 上，且是
+// capture 阶段（client/app/router.js 的 window.addEventListener('click', …, {capture:true})）。
+// capture 自上而下先到 window，组件里冒泡阶段加的 @click 永远排在它后面。它一拿到
+// href="#slug" 就会 pushState 改地址并派发 hashchange；HomeNoteList 收到一个既不是
+// #note-<分区>/<key> 也不是分区名的 hash，按兜底逻辑把分区翻回首页 —— 左侧目录消失。
+// 在组件里 preventDefault 已经晚了一步。
+//
+// 所以在这里把 href 换成 data-heading：代理取不到 linkHref 就整段跳过这次点击，
+// 滚动改由 NoteView 负责（按「当前这篇」的范围找标题，避开跨笔记的同名 id）。
+function rewriteInlineAnchors(html: string): string {
+  return html.replace(
+    /<a\b([^>]*?)\s+href="(#[^"]*)"([^>]*)>/g,
+    (all, before: string, href: string, after: string) => {
+      const slug = href.slice(1)
+      // 空锚点（href="#"）不是标题锚点；#note-… 是站内笔记地址，要留给路由处理
+      if (!slug || slug.startsWith('note-')) return all
+      const attrs = (before + ' ' + after).replace(/\s+/g, ' ').trim()
+      // 值走属性转义：手写 {#id} 里可能出现 & " ' <
+      const value = slug
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/</g, '&lt;')
+      // tabindex 必须补：原锚点靠 href 进入 Tab 序列，去掉 href 后要显式加回来
+      const head = `<a${attrs ? ' ' + attrs : ''}`
+      return `${head} data-heading="${value}" tabindex="0">`
+    }
+  )
+}
+
 // ===== 首页注入：全部分区内容（构建期一次渲染，运行时零解析） =====
 // 只有首页需要：所有分区 pane 都挂在首页上（v-show），点导航就地切换、不跳页。
 function injectSectionContent(pageData: Record<string, unknown>) {
@@ -276,6 +310,22 @@ function injectSectionContent(pageData: Record<string, unknown>) {
 // ===== 独立页 → 首页三栏 =====
 // hash 的格式与编码规则统一在 shared/noteHash.ts，与主题的运行时改道共用一份实现，
 // 避免「构建期写的 hash」和「运行时解析的 hash」两套规则分叉。
+
+// 顶栏导航「首页」项的显示内容：房子图标 + 文字。
+// VitePress 用 v-html 渲染菜单项 text（VPNavBarMenuLink / VPNavScreenMenuLink），
+// 所以这里直接写内联 SVG；stroke 取 currentColor，颜色自动跟随菜单项本身的三态。
+// 两套内容同时输出，由 style.css 按断点取舍：
+//   顶栏（>=768px）只显示图标，文字视觉隐藏但留在无障碍树里；
+//   移动端抽屉（<768px）显示文字、不显示图标——抽屉是一列文字菜单，单独一个图标会很突兀。
+const HOME_NAV_TEXT =
+  '<span class="nav-home-label">首页</span>' +
+  '<svg class="nav-home-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
+  ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+  // 原生悬停提示：图标没有文字，鼠标停上去要能看出是什么
+  '<title>首页</title>' +
+  '<path d="M3 10.5 12 3l9 7.5" />' +
+  '<path d="M5.5 9.8V20h13V9.8" />' +
+  '</svg>'
 
 export default defineConfig({
   title: '奇迹大师的学习笔记',
@@ -341,7 +391,12 @@ export default defineConfig({
   ignoreDeadLinks: true,
   themeConfig: {
     nav: [
-      { text: '首页', link: '/' }
+      // 搜索栏右侧的导航项：首页改成房子图标。
+      // VitePress 用 v-html 渲染菜单项的 text（见 VPNavBarMenuLink / VPNavScreenMenuLink），
+      // 所以这里直接放内联 SVG；stroke 取 currentColor，颜色自动跟随菜单项本身
+      // （普通 / hover / active 三态都不用另写）。
+      // 文字保留在 visually-hidden 里：图标对读屏和 SEO 没有语义，链接名不能丢。
+      { text: HOME_NAV_TEXT, link: '/' }
     ],
     // 全站禁用侧边栏：分区目录统一放在内容区（各分区共用 SectionPane 的三栏界面）。
     // 此前全局 sidebar 导致笔记/规划页渲染左侧栏（fixed 覆盖到导航区，盖住二级导航分隔线）。

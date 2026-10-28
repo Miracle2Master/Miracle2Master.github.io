@@ -203,11 +203,48 @@ function stickyTopOffset(): number {
 // 点击标题目录 → 滚动到对应标题
 // 滚动发生在整页（window）上，正文不再自建滚动容器：
 // 目标 = 标题在文档中的绝对位置 - 吸顶偏移，标题精确停在吸顶线下方、两侧目录不动。
+function scrollToEl(el: HTMLElement) {
+  const top = window.scrollY + el.getBoundingClientRect().top - stickyTopOffset()
+  window.scrollTo({ top, behavior: 'smooth' })
+}
+
 function goHeading(id: string) {
   const el = outline.value.find((o) => o.id === id)?.el
   if (!el) return
-  const top = window.scrollY + el.getBoundingClientRect().top - stickyTopOffset()
-  window.scrollTo({ top, behavior: 'smooth' })
+  scrollToEl(el)
+}
+
+// ===== 正文标题旁的 # 锚点：就地滚动，不动地址栏 =====
+// 这些锚点在构建期被 config.mts 的 rewriteInlineAnchors 去掉了 href、换成 data-heading
+// （原因见那里的注释：VitePress 的 window 捕获阶段点击代理会抢先改 hash，
+// 而首页把全部分区挂在同一个 DOM 里，未知 hash 会让 HomeNoteList 把分区翻回首页）。
+// 这里接管点击/回车：按「当前这篇」的范围找标题，天然避开跨笔记的同名 id。
+function jumpToHeading(slug: string) {
+  const root = contentRef.value
+  if (!root || !slug) return
+  // 属性选择器里只需转义 " 和 \，其余字符在双引号包裹下无需处理
+  const el = root.querySelector<HTMLElement>(`[id="${slug.replace(/["\\]/g, '\\$&')}"]`)
+  if (!el) return
+  scrollToEl(el)
+}
+
+function onBodyClick(e: MouseEvent) {
+  const el = e.target
+  if (!(el instanceof Element)) return
+  const a = el.closest<HTMLElement>('[data-heading]')
+  if (!a) return
+  // 去掉 href 后浏览器已无默认行为，这里只为把 focus / 点击统一到一个入口
+  e.preventDefault()
+  jumpToHeading(a.dataset.heading ?? '')
+}
+
+// 原锚点靠 href 进入 Tab 序列、靠回车触发；去掉 href 后要手动补回回车行为
+function onBodyKeydown(e: KeyboardEvent) {
+  if (e.key !== 'Enter' || e.ctrlKey || e.shiftKey || e.altKey || e.metaKey) return
+  const el = e.target
+  if (!(el instanceof HTMLElement) || !el.hasAttribute('data-heading')) return
+  e.preventDefault()
+  jumpToHeading(el.dataset.heading ?? '')
 }
 
 // 滚动高亮当前标题：观察根仍是视口（整页滚动），
@@ -248,8 +285,32 @@ onUnmounted(() => io?.disconnect())
           v-if="allPaths.length"
           class="expand-all-btn"
           type="button"
+          :aria-label="allCollapsed ? '全部展开' : '全部收起'"
+          :title="allCollapsed ? '全部展开' : '全部收起'"
           @click="toggleAll"
-        >{{ allCollapsed ? '全部展开' : '全部收起' }}</button>
+        >
+          <!-- 双箭头：背离 = 展开，相向 = 收起。
+               与左栏文件夹的单个 ▸ 不是一套图形，避免「全部」和「这一个」混淆 -->
+          <svg
+            class="expand-all-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <template v-if="allCollapsed">
+              <path d="m7 15 5 5 5-5" />
+              <path d="m7 9 5-5 5 5" />
+            </template>
+            <template v-else>
+              <path d="m7 20 5-5 5 5" />
+              <path d="m7 4 5 5 5-5" />
+            </template>
+          </svg>
+        </button>
       </div>
 
       <FileTree
@@ -264,7 +325,7 @@ onUnmounted(() => io?.disconnect())
 
     <!-- 中间：当前笔记正文 -->
     <!-- ref 绑在正文容器上，仅用于扫描标题 / 定位目标（正文本身不自建滚动容器） -->
-    <div ref="contentRef" class="note-body">
+    <div ref="contentRef" class="note-body" @click="onBodyClick" @keydown="onBodyKeydown">
       <!-- 加锁时只换正文，左栏目录与点击行为完全不变；右栏因扫不到标题自动隐藏 -->
       <slot v-if="locked" name="lock" />
       <!-- 分区为空（如 docs/archive/ 只有 .gitkeep）：保留三栏骨架，中栏给提示，不白屏 -->
@@ -357,9 +418,14 @@ onUnmounted(() => io?.disconnect())
   gap: 12px;
 }
 
-/* 全部展开 / 全部收起：纯文字小按钮，不抢标题的视觉重量 */
+/* 全部展开 / 全部收起：纯图标小按钮，不抢标题的视觉重量 */
 .expand-all-btn {
   flex: none;
+  display: inline-flex;
+  align-items: center;
+  /* 标题行是按文字基线对齐的；按钮里没有文字，基线会退化成它的下沿，
+     图标整体偏高。单独改成居中，标题的对齐方式不受影响 */
+  align-self: center;
   padding: 0;
   font-size: 12px;
   font-family: inherit;
@@ -373,6 +439,12 @@ onUnmounted(() => io?.disconnect())
 
 .expand-all-btn:hover {
   color: var(--note-accent);
+}
+
+.expand-all-icon {
+  display: block;
+  width: 16px;
+  height: 16px;
 }
 
 /* 左侧目录树（.file-nav-list / .file-nav-sub / .file-nav-item 等）已移到 FileTree.vue，

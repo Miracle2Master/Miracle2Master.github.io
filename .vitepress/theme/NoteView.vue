@@ -18,6 +18,9 @@ const props = defineProps<{
   label?: string
   // 正文加锁：左栏目录照常可见可点，中栏不渲染正文、改用 #lock 占位（右栏因扫不到标题而自动隐藏）
   locked?: boolean
+  // 子文件夹顺序：来自各目录里的 order.md（构建期扫描注入）。
+  // key 是「相对分区根的目录路径」（'' 表示分区根），值是子文件夹名的行序。
+  folderOrder?: Record<string, string[]>
 }>()
 const emit = defineEmits<{ open: [key: string]; back: [] }>()
 
@@ -36,8 +39,16 @@ const groupNotes = computed(() =>
 
 // ===== 左侧目录树：把作用域内的笔记按子文件夹层级组织（任意深度） =====
 // 结构：直接文件（顶层）+ 子文件夹（每项含该子文件夹内直接文件 + 更深一层子文件夹）
-type TreeFile = { title: string; key: string }
+// 排序分两个区，各排各的：
+//   文件区 → frontmatter order 升序，没写 order 的沉底，同序按标题拼音
+//   文件夹区 → 所在目录 order.md 的行序，未登记的沉底，同序按名字拼音
+// 文件区始终在前、文件夹区在后（界面结构保持原样，只有区内部换成按编号）。
+type TreeFile = { title: string; key: string; order: number }
 type SubGroup = { name: string; path: string; files: TreeFile[]; subs: SubGroup[] }
+
+// 没写 order 的笔记 unified 沉底。用 MAX_SAFE_INTEGER 而不是 Infinity：
+// 两个值相减得 0，不会像 Infinity - Infinity 那样出 NaN 把排序搞乱。
+const NO_ORDER = Number.MAX_SAFE_INTEGER
 
 function buildTree(notes: Note[]): { rootFiles: TreeFile[]; subs: SubGroup[] } {
   const rootFiles: TreeFile[] = []
@@ -50,7 +61,7 @@ function buildTree(notes: Note[]): { rootFiles: TreeFile[]; subs: SubGroup[] } {
     // 去掉作用域前缀；全局作用域下 key 本身就是完整相对路径
     const rel = prefix.value ? n.key.slice(prefix.value.length + 1) : n.key
     const seg = rel.split('/')
-    const file: TreeFile = { title: n.title, key: n.key }
+    const file: TreeFile = { title: n.title, key: n.key, order: n.order ?? NO_ORDER }
     if (seg.length === 1) {
       rootFiles.push(file)
       continue
@@ -75,16 +86,30 @@ function buildTree(notes: Note[]): { rootFiles: TreeFile[]; subs: SubGroup[] } {
   }
 
   // 排序递归到任意深度（不要写死到第几层，层级变深时会漏排）
-  const sortFiles = (files: TreeFile[]) => files.sort((a, b) => a.title.localeCompare(b.title, 'zh-CN'))
-  const sortList = (list: SubGroup[]) => {
-    list.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'))
+  const sortFiles = (files: TreeFile[]) =>
+    files.sort((a, b) => a.order - b.order || a.title.localeCompare(b.title, 'zh-CN'))
+
+  // 子文件夹排序：segments 是「相对作用域根」的目录路径分段。
+  // order.md 里的 key 是「相对分区根」的完整路径，所以这里要补上 prefix 才是查表用的键。
+  const sortList = (list: SubGroup[], segments: string[]) => {
+    const absDir = (segs: string[]) =>
+      prefix.value ? [prefix.value, ...segs].join('/') : segs.join('/')
+    const orderList = props.folderOrder?.[absDir(segments)] ?? []
+    // 行序即名次；未登记的用 Infinity 沉底（这里不参与相减，不存在 NaN 问题）
+    const rank = new Map(orderList.map((name, i) => [name, i]))
+    list.sort((a, b) => {
+      const ra = rank.get(a.name)
+      const rb = rank.get(b.name)
+      if (ra !== rb) return (ra ?? Infinity) - (rb ?? Infinity)
+      return a.name.localeCompare(b.name, 'zh-CN')
+    })
     for (const s of list) {
       sortFiles(s.files)
-      sortList(s.subs)
+      sortList(s.subs, [...segments, s.name])
     }
   }
   sortFiles(rootFiles)
-  sortList(subs)
+  sortList(subs, [])
   return { rootFiles, subs }
 }
 

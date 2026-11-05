@@ -2,7 +2,8 @@
 // 左侧文件树：递归渲染任意层级的子文件夹
 // 展开状态由 NoteView 统一持有（用完整路径作 key），这样「全部展开 / 全部收起」
 // 与「当前笔记自动展开祖先」都能一次改到所有层级，递归组件本身只负责显示与上报点击。
-type TreeFile = { title: string; key: string }
+// 只负责显示：顺序在 NoteView 的 buildTree() 里就排好了，这里不再排序。
+type TreeFile = { title: string; key: string; order: number }
 type SubGroup = { name: string; path: string; files: TreeFile[]; subs: SubGroup[] }
 
 const props = defineProps<{

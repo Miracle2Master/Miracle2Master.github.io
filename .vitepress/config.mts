@@ -146,6 +146,62 @@ function introOf(raw: string): boolean {
   return /^\s*intro\s*:\s*true\s*$/m.test(fm[1])
 }
 
+// ===== 文件夹顺序：每个目录里的 order.md =====
+// 一个目录下的子文件夹怎么排，由该目录的 order.md 决定：一行一个文件夹名，行序即顺序。
+// 规则与 .vitepress/sections.txt 完全一致（# 注释、空行忽略、行序即顺序），
+// 全站只有这一种「行序即顺序」的心智模型。
+// 没有 order.md 的目录不强制：子文件夹回退成按名字拼音排（与改造前一致）。
+// order.md 只是配置，不是笔记正文——它不进左栏、也不生成独立页（见 srcExclude）。
+const FOLDER_ORDER_FILE = 'order.md'
+
+function readFolderOrder(dir: string): string[] {
+  const file = join(dir, FOLDER_ORDER_FILE)
+  if (!existsSync(file) || !statSync(file).isFile()) return []
+  let raw = ''
+  try {
+    raw = readFileSync(file, 'utf-8')
+  } catch {
+    return [] // 读不了就当没写，不阻断构建
+  }
+  const out: string[] = []
+  for (const line of raw.split(/\r?\n/)) {
+    const name = line.trim()
+    if (!name || name.startsWith('#')) continue
+    if (out.includes(name)) {
+      console.warn(`[order.md] ${file} 中「${name}」重复登记，以第一次为准`)
+      continue
+    }
+    out.push(name)
+  }
+  return out
+}
+
+// 单个分区：相对目录路径 → 该目录下子文件夹的名称序列
+// 分区根本身用 '' 作 key，与前端「作用域根」的口径一致
+function buildFolderOrder(sectionKey: string): Record<string, string[]> {
+  const out: Record<string, string[]> = {}
+  const sectionDir = join(docsDir, sectionKey)
+  if (!existsSync(sectionDir) || !statSync(sectionDir).isDirectory()) return out
+  const visit = (dir: string, rel: string) => {
+    const list = readFolderOrder(dir)
+    if (list.length) out[rel] = list
+    for (const name of readdirSync(dir)) {
+      if (NON_SECTION_DIRS.has(name)) continue
+      const full = join(dir, name)
+      if (!statSync(full).isDirectory()) continue
+      visit(full, rel ? `${rel}/${name}` : name)
+    }
+  }
+  visit(sectionDir, '')
+  return out
+}
+
+function buildAllFolderOrder(): Record<string, Record<string, string[]>> {
+  const out: Record<string, Record<string, string[]>> = {}
+  for (const s of sectionNav) out[s.key] = buildFolderOrder(s.key)
+  return out
+}
+
 // 单个分区：遍历 docs/<section>/ 下全部 md（任意深度），构建期渲染成 HTML
 // 根级散文件（如 目标与方向.md）与子文件夹里的文件同等对待，前端 FileTree 会递归成树
 function buildSectionContent(sectionKey: string): SectionEntryData[] {
@@ -154,6 +210,8 @@ function buildSectionContent(sectionKey: string): SectionEntryData[] {
   const slots: SectionEntryData[] = []
   for (const file of walk(sectionDir)) {
     const rel = relative(sectionDir, file).replace(/\\/g, '/')
+    // order.md 是本目录的排序配置，不是笔记正文：跳过，不渲染、不进左栏
+    if (rel === FOLDER_ORDER_FILE || rel.endsWith('/' + FOLDER_ORDER_FILE)) continue
     const raw = readFileSync(file, 'utf-8')
     const body = raw.replace(/^---\s*\n[\s\S]*?\n---\s*\n?/, '')
     const key = rel.replace(/\.md$/, '')
@@ -304,6 +362,8 @@ function injectSectionContent(pageData: Record<string, unknown>) {
   const file = pageData.filePath ?? ''
   if (file === 'index.md' || file === 'index.html') {
     pageData.sectionContent = buildAllSectionContent()
+    // 左栏子文件夹顺序：Record<分区key, Record<父目录相对路径, 子文件夹名序列>>
+    pageData.folderOrder = buildAllFolderOrder()
   }
 }
 
@@ -333,6 +393,9 @@ export default defineConfig({
   lang: 'zh-CN',
   base: '/',
   srcDir: 'docs',
+  // order.md 是目录级排序配置（见上方 readFolderOrder），不是笔记正文。
+  // 不排除的话 VitePress 会把它当页面构建，生成一个可访问的空白 md 页。
+  srcExclude: ['order.md', '**/order.md'],
   // 强制深色：全站不提供浅色模式。
   // 该值会三件事同时生效：构建期注入 document.documentElement.classList.add('dark')、
   // 客户端 isDark 恒为 true、右上角明暗切换组件（VPNavBarAppearance）不再渲染。

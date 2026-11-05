@@ -4,8 +4,6 @@ order: 65
 
 # LangChain 核心概念
 
----
-
 ## 一、LangChain 定位
 
 LangChain 是连接 LLM 与外部数据和工具的胶水框架。LLM 本身只能基于训练数据生成文本，对训练截止日期之后的信息一无所知。LangChain 负责在 LLM 回答之前，帮它找到相关资料、调用外部工具、拼到 Prompt 里。

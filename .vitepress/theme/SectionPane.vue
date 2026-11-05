@@ -27,6 +27,13 @@ const sectionNav = computed<{ key: string; text: string }[]>(
   () => (page.value.sectionNav as { key: string; text: string }[]) ?? []
 )
 
+// 左栏子文件夹顺序：来自各目录里的 order.md（构建期扫描注入）
+// 只取本分区那一段；key 是「相对分区根的目录路径」，'' 表示分区根
+const folderOrder = computed<Record<string, string[]>>(() => {
+  const all = page.value.folderOrder as Record<string, Record<string, string[]>> | undefined
+  return all?.[props.sectionKey] ?? {}
+})
+
 // 左栏标题：默认取导航里的显示文字（日记 → 日记 / 归档 → 归档）。
 // 笔记分区沿用原来的「全部笔记」，不因这次统一而改动既有界面。
 const label = computed(() => {
@@ -158,6 +165,7 @@ onUnmounted(() => {
       :current-key="currentKey"
       :label="label"
       :locked="lockedNow"
+      :folder-order="folderOrder"
       root=""
       hide-back
       @open="openNote"

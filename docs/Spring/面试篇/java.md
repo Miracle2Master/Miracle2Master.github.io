@@ -72,7 +72,7 @@
 
 8. Java 为什么要有 Integer？
 
-   三个作用。一是适配集合和泛型，泛型参数只能是引用类型，不能写 List<int>，只能写 List<Integer>；二是能表示 null，用来区分没有值和值为 0，比如用户年龄未填写；三是提供处理整数的工具方法，如 parseInt、toString、toHexString，这些都是静态方法，不用创建对象。要注意 Integer 为 null 时自动拆箱会抛 NullPointerException。
+   三个作用。一是适配集合和泛型，泛型参数只能是引用类型，不能写 `List<int>`，只能写 `List<Integer>`；二是能表示 null，用来区分没有值和值为 0，比如用户年龄未填写；三是提供处理整数的工具方法，如 parseInt、toString、toHexString，这些都是静态方法，不用创建对象。要注意 Integer 为 null 时自动拆箱会抛 NullPointerException。
 
 9. Integer 相比 int 有什么优点？
 
@@ -168,7 +168,7 @@
 
 1. 什么是泛型？
 
-   泛型是在定义类、接口或方法时先用一个类型参数表示具体类型，使用时再指定，比如 List<String>。它解决两个问题：代码复用，一个 Box<T> 就能适配各种类型，不用分别写 StringBox、IntegerBox；类型安全，把类型检查提前到编译期，取出来不用强制转换，避免 ClassCastException。泛型通过类型擦除实现：编译期做类型检查，生成字节码时把类型参数替换成上界（没指定上界就是 Object），并在需要处插入转换，所以 List<String> 和 List<Integer> 运行时是同一个类，instanceof 对比也是 true。两个注意点：类型参数只能是引用类型，不能写 List<int>；List<Integer> 不是 List<Number> 的子类，需要按读写需求用通配符，读用 ? extends Number，写用 ? super Integer。
+   泛型是在定义类、接口或方法时先用一个类型参数表示具体类型，使用时再指定，比如 `List<String>`。它解决两个问题：代码复用，一个 `Box<T>` 就能适配各种类型，不用分别写 StringBox、IntegerBox；类型安全，把类型检查提前到编译期，取出来不用强制转换，避免 ClassCastException。泛型通过类型擦除实现：编译期做类型检查，生成字节码时把类型参数替换成上界（没指定上界就是 Object），并在需要处插入转换，所以 `List<String>` 和 `List<Integer>` 运行时是同一个类，instanceof 对比也是 true。两个注意点：类型参数只能是引用类型，不能写 `List<int>`；`List<Integer>` 不是 `List<Number>` 的子类，需要按读写需求用通配符，读用 `? extends Number`，写用 `? super Integer`。
 
 ## 七、对象
 
@@ -340,7 +340,7 @@
 
 1. 有一个学生类，想按照分数排序，再按学号排序，应该怎么做？
 
-   让 Student 实现 Comparable<Student> 接口并重写 compareTo 方法：先比较分数，分数不同时按分数降序返回，分数相同时再用 Integer.compare 按学号升序返回。然后在需要排序的地方调用 Collections.sort 或 list.sort 即可。如果排序规则不固定、需要运行时切换，用 Comparator 更灵活，比如 Comparator.comparing(Student::getScore).reversed().thenComparing(Student::getId)，语义也更清晰。
+   让 Student 实现 `Comparable<Student>` 接口并重写 compareTo 方法：先比较分数，分数不同时按分数降序返回，分数相同时再用 Integer.compare 按学号升序返回。然后在需要排序的地方调用 Collections.sort 或 list.sort 即可。如果排序规则不固定、需要运行时切换，用 Comparator 更灵活，比如 Comparator.comparing(Student::getScore).reversed().thenComparing(Student::getId)，语义也更清晰。
 
 2. Native 方法解释一下
 

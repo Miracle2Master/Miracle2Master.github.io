@@ -1,5 +1,5 @@
 ---
-order: 11
+order: 1
 ---
 
 # 1.准备Linux环境
